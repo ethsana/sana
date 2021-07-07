@@ -6,20 +6,25 @@ import (
 
 var (
 	// chain ID
-	goerliChainID = int64(5)
-	xdaiChainID   = int64(100)
+	ropstenChainID = int64(3)
+	goerliChainID  = int64(5)
+	xdaiChainID    = int64(100)
 	// start block
-	goerliStartBlock = uint64(4933174)
-	xdaiStartBlock   = uint64(16515648)
+	ropstenStartBlock = uint64(10547105)
+	goerliStartBlock  = uint64(4933174)
+	xdaiStartBlock    = uint64(16515648)
 	// factory address
+	ropstenContractAddress     = common.HexToAddress("0xB5CC6A4a4b0523810001e120dd55B5DB1522787F")
 	goerliContractAddress      = common.HexToAddress("0x0c9de531dcb38b758fe8a2c163444a5e54ee0db2")
 	xdaiContractAddress        = common.HexToAddress("0x0FDc5429C50e2a39066D8A94F3e2D2476fcc3b85")
+	ropstenFactoryAddress      = common.HexToAddress("0x00b0501611e441bca1cb619358d9eb844c700d98")
 	goerliFactoryAddress       = common.HexToAddress("0x73c412512E1cA0be3b89b77aB3466dA6A1B9d273")
 	xdaiFactoryAddress         = common.HexToAddress("0xc2d5a532cf69aa9a1378737d8ccdef884b6e7420")
 	goerliLegacyFactoryAddress = common.HexToAddress("0xf0277caffea72734853b834afc9892461ea18474")
 	// postage stamp
-	goerliPostageStampContractAddress = common.HexToAddress("0x621e455C4a139f5C4e4A8122Ce55Dc21630769E4")
-	xdaiPostageStampContractAddress   = common.HexToAddress("0x6a1a21eca3ab28be85c7ba22b2d6eae5907c900e")
+	ropstenPostageStampContractAddress = common.HexToAddress("0x852DD6dA16AB0389f97166e49978998A253a33E7")
+	goerliPostageStampContractAddress  = common.HexToAddress("0x621e455C4a139f5C4e4A8122Ce55Dc21630769E4")
+	xdaiPostageStampContractAddress    = common.HexToAddress("0x6a1a21eca3ab28be85c7ba22b2d6eae5907c900e")
 )
 
 type ChainConfig struct {
@@ -33,6 +38,14 @@ type ChainConfig struct {
 func GetChainConfig(chainID int64) (*ChainConfig, bool) {
 	var cfg ChainConfig
 	switch chainID {
+	case ropstenChainID:
+		cfg.PostageStamp = ropstenPostageStampContractAddress
+		cfg.StartBlock = ropstenStartBlock
+		cfg.CurrentFactory = ropstenFactoryAddress
+		cfg.LegacyFactories = []common.Address{}
+		cfg.PriceOracleAddress = ropstenContractAddress
+		return &cfg, true
+
 	case goerliChainID:
 		cfg.PostageStamp = goerliPostageStampContractAddress
 		cfg.StartBlock = goerliStartBlock

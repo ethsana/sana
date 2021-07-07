@@ -446,6 +446,11 @@ func getConfigByNetworkID(networkID uint64, defaultBlockTime uint64) *networkCon
 		config.bootNodes = []string{"/dnsaddr/mainnet.ethswarm.org"}
 		config.blockTime = uint64(5 * time.Second)
 		config.chainID = 100
+
+	case 3:
+		config.bootNodes = []string{}
+		config.chainID = 3
+
 	case 5: //staging
 		config.chainID = 5
 	case 10: //test
