@@ -69,7 +69,9 @@ const (
 	optionNameBlockTime                  = "block-time"
 	optionWarmUpTime                     = "warmup-time"
 	optionNameMainNet                    = "mainnet"
-	optionNameMiner                      = "miner"
+	optionNameMine                       = "mine"
+	optionNameMineInitialDeposit         = "mine-initial-deposit"
+	optionNameMineContractAddress        = "mine-address"
 )
 
 func init() {
@@ -235,7 +237,7 @@ func (c *command) setAllFlags(cmd *cobra.Command) {
 	cmd.Flags().String(optionNameSwapEndpoint, "ws://localhost:8546", "swap ethereum blockchain endpoint")
 	cmd.Flags().String(optionNameSwapFactoryAddress, "", "swap factory addresses")
 	cmd.Flags().StringSlice(optionNameSwapLegacyFactoryAddresses, nil, "legacy swap factory addresses")
-	cmd.Flags().String(optionNameSwapInitialDeposit, "500000000000000000000", "initial deposit if deploying a new chequebook")
+	cmd.Flags().String(optionNameSwapInitialDeposit, "10000000000000000", "initial deposit if deploying a new chequebook")
 	cmd.Flags().Bool(optionNameSwapEnable, true, "enable swap")
 	cmd.Flags().Bool(optionNameFullNode, false, "cause the node to start in full mode")
 	cmd.Flags().String(optionNamePostageContractAddress, "", "postage stamp contract address")
@@ -246,7 +248,9 @@ func (c *command) setAllFlags(cmd *cobra.Command) {
 	cmd.Flags().String(optionNameSwapDeploymentGasPrice, "", "gas price in wei to use for deployment and funding")
 	cmd.Flags().Duration(optionWarmUpTime, time.Minute*20, "time to warmup the node before pull/push protocols can be kicked off.")
 	cmd.Flags().Bool(optionNameMainNet, false, "triggers connect to main net bootnodes.")
-	cmd.Flags().Bool(optionNameMiner, true, "enable sana miner")
+	cmd.Flags().Bool(optionNameMine, true, "enable sana miner")
+	cmd.Flags().String(optionNameMineInitialDeposit, "500000000000000000000", "initial deposit of mine")
+	cmd.Flags().String(optionNameMineContractAddress, "", "mine contract address")
 }
 
 func newLogger(cmd *cobra.Command, verbosity string) (logging.Logger, error) {

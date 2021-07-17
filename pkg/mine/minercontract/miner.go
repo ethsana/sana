@@ -11,7 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethersphere/bee/pkg/miner"
+	"github.com/ethersphere/bee/pkg/mine"
 	"github.com/ethersphere/bee/pkg/sctx"
 	"github.com/ethersphere/bee/pkg/transaction"
 )
@@ -33,7 +33,7 @@ type minerService struct {
 	address            common.Address
 }
 
-func New(backend transaction.Backend, transactionService transaction.Service, address common.Address) miner.MinerContract {
+func New(backend transaction.Backend, transactionService transaction.Service, address common.Address) mine.MinerContract {
 	return &minerService{
 		backend:            backend,
 		transactionService: transactionService,

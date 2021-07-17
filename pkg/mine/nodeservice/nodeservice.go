@@ -11,7 +11,7 @@ import (
 	"hash"
 
 	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/miner"
+	"github.com/ethersphere/bee/pkg/mine"
 	"github.com/ethersphere/bee/pkg/postage"
 	"github.com/ethersphere/bee/pkg/storage"
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -25,7 +25,7 @@ const (
 
 type nodeService struct {
 	stateStore storage.StateStorer
-	storer     miner.Storer
+	storer     mine.Storer
 	logger     logging.Logger
 	listener   postage.Listener
 
@@ -34,7 +34,7 @@ type nodeService struct {
 }
 
 type Interface interface {
-	miner.EventUpdater
+	mine.EventUpdater
 	Start(startBlock uint64) (<-chan struct{}, error)
 
 	TrustAddress() ([]swarm.Address, error)
@@ -43,7 +43,7 @@ type Interface interface {
 // New will create a new nodeService.
 func New(
 	stateStore storage.StateStorer,
-	storer miner.Storer,
+	storer mine.Storer,
 	logger logging.Logger,
 	listener postage.Listener,
 	checksumFunc func() hash.Hash,
@@ -78,7 +78,7 @@ func New(
 }
 
 func (svc *nodeService) Miner(node, chequebook []byte, txHash []byte) error {
-	n := &miner.Node{
+	n := &mine.Node{
 		Node:       node,
 		Trust:      false,
 		Chequebook: chequebook,

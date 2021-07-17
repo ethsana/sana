@@ -5,7 +5,7 @@ const minerAbi = `[
     "inputs": [
       {
         "internalType": "address",
-        "name": "token_",
+        "name": "_token",
         "type": "address"
       }
     ],
@@ -22,10 +22,16 @@ const minerAbi = `[
         "type": "bytes32"
       },
       {
+        "indexed": true,
+        "internalType": "bool",
+        "name": "deposit",
+        "type": "bool"
+      },
+      {
         "indexed": false,
-        "internalType": "address",
-        "name": "chequebook",
-        "type": "address"
+        "internalType": "bool",
+        "name": "active",
+        "type": "bool"
       }
     ],
     "name": "Miner",
@@ -85,8 +91,31 @@ const minerAbi = `[
         "type": "uint256"
       }
     ],
-    "name": "Withdrawn",
+    "name": "Withdraw",
     "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "node",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signatures",
+        "type": "bytes"
+      }
+    ],
+    "name": "active",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
     "inputs": [],
@@ -104,8 +133,104 @@ const minerAbi = `[
   {
     "inputs": [
       {
+        "internalType": "bytes32",
+        "name": "node",
+        "type": "bytes32"
+      }
+    ],
+    "name": "cashDeposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "cycles",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "node",
+        "type": "bytes32"
+      }
+    ],
+    "name": "deposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "node",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signatures",
+        "type": "bytes"
+      }
+    ],
+    "name": "dishonesty",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "node",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signatures",
+        "type": "bytes"
+      }
+    ],
+    "name": "inactive",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "height",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "rate",
         "type": "uint256"
       }
     ],
@@ -130,6 +255,32 @@ const minerAbi = `[
   {
     "inputs": [],
     "name": "lastUpdateBlock",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lockup",
+    "outputs": [
+      {
+        "internalType": "contract ILockup",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minerNews",
     "outputs": [
       {
         "internalType": "uint256",
@@ -174,6 +325,11 @@ const minerAbi = `[
         "type": "bool"
       },
       {
+        "internalType": "bool",
+        "name": "deposit",
+        "type": "bool"
+      },
+      {
         "internalType": "uint256",
         "name": "reward",
         "type": "uint256"
@@ -181,11 +337,6 @@ const minerAbi = `[
       {
         "internalType": "address",
         "name": "received",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "chequebook",
         "type": "address"
       }
     ],
@@ -206,25 +357,6 @@ const minerAbi = `[
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "node",
-        "type": "bytes32"
-      }
-    ],
-    "name": "pack",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "periodFinish",
     "outputs": [
@@ -235,24 +367,6 @@ const minerAbi = `[
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "node",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address",
-        "name": "chequebook",
-        "type": "address"
-      }
-    ],
-    "name": "regist",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -289,6 +403,11 @@ const minerAbi = `[
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -309,12 +428,38 @@ const minerAbi = `[
   },
   {
     "inputs": [],
+    "name": "startBlock",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "token",
     "outputs": [
       {
         "internalType": "contract IERC20",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalRewardStored",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -398,6 +543,19 @@ const minerAbi = `[
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "validateTrusts",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "bytes32",
@@ -411,7 +569,7 @@ const minerAbi = `[
       },
       {
         "internalType": "bytes",
-        "name": "sign",
+        "name": "signatrues",
         "type": "bytes"
       }
     ],
