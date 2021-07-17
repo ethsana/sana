@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package miner
+package mine
 
 // Batch represents a postage batch, a payment on the blockchain.
 type Node struct {

@@ -37,11 +37,11 @@ import (
 	"github.com/ethersphere/bee/pkg/localstore"
 	"github.com/ethersphere/bee/pkg/logging"
 	"github.com/ethersphere/bee/pkg/metrics"
-	"github.com/ethersphere/bee/pkg/miner"
-	"github.com/ethersphere/bee/pkg/miner/minercontract"
-	"github.com/ethersphere/bee/pkg/miner/nodeservice"
-	"github.com/ethersphere/bee/pkg/miner/nodestore"
-	"github.com/ethersphere/bee/pkg/miner/rollcall"
+	"github.com/ethersphere/bee/pkg/mine"
+	"github.com/ethersphere/bee/pkg/mine/minercontract"
+	"github.com/ethersphere/bee/pkg/mine/nodeservice"
+	"github.com/ethersphere/bee/pkg/mine/nodestore"
+	"github.com/ethersphere/bee/pkg/mine/rollcall"
 	"github.com/ethersphere/bee/pkg/netstore"
 	"github.com/ethersphere/bee/pkg/p2p"
 	"github.com/ethersphere/bee/pkg/p2p/libp2p"
@@ -158,7 +158,7 @@ type Options struct {
 	DeployGasPrice             string
 	WarmupTime                 time.Duration
 	ChainID                    int64
-	MinerEnabled               bool
+	MineEnabled                bool
 }
 
 const (
@@ -426,7 +426,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		postageContractService postagecontract.Interface
 		batchSvc               postage.EventUpdater
 		eventListener          postage.Listener
-		mine                   miner.Service
+		mineSvc                mine.Service
 	)
 
 	var postageSyncStart uint64 = 0
@@ -466,7 +466,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 			post,
 		)
 
-		if o.MinerEnabled {
+		if o.MineEnabled {
 			nodeStore, err := nodestore.New(stateStore, logger)
 			if err != nil {
 				return nil, fmt.Errorf("nodestore: %w", err)
@@ -479,7 +479,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 				return nil, err
 			}
 
-			mine, err = miner.NewService(swarmAddress, chequebookService.Address(), minerContract, nodeSvc, signer, logger, o.DeployGasPrice)
+			mineSvc, err = mine.NewService(swarmAddress, chequebookService.Address(), minerContract, nodeSvc, signer, logger, o.DeployGasPrice)
 			if err != nil {
 				return nil, err
 			}
@@ -544,14 +544,14 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 	hive.SetAddPeersHandler(kad.AddPeers)
 	p2ps.SetPickyNotifier(kad)
 	batchStore.SetRadiusSetter(kad)
-	if o.MinerEnabled {
+	if o.MineEnabled {
 		rollcall := rollcall.New(p2ps, logger, swarmAddress)
 		if err = p2ps.AddProtocol(rollcall.Protocol()); err != nil {
 			return nil, fmt.Errorf("rollcall service: %w", err)
 		}
-		mine.SetRollCall(rollcall)
+		mineSvc.SetRollCall(rollcall)
 		rollcall.SetTopology(kad)
-		rollcall.SetCertificateObserver(mine)
+		rollcall.SetCertificateObserver(mineSvc)
 	}
 
 	if batchSvc != nil {
@@ -570,8 +570,8 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 
 	}
 
-	if o.MinerEnabled && mine != nil {
-		syncedChan, err := mine.Start(postageSyncStart)
+	if o.MineEnabled && mineSvc != nil {
+		syncedChan, err := mineSvc.Start(postageSyncStart)
 		if err != nil {
 			return nil, fmt.Errorf("unable to start node service: %w", err)
 		}
@@ -830,7 +830,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		}
 
 		// inject dependencies and configure full debug api http path routes
-		debugAPIService.Configure(swarmAddress, p2ps, pingPong, kad, lightNodes, storer, tagService, acc, pseudosettleService, o.SwapEnable, swapService, chequebookService, batchStore, post, postageContractService, o.MinerEnabled, mine)
+		debugAPIService.Configure(swarmAddress, p2ps, pingPong, kad, lightNodes, storer, tagService, acc, pseudosettleService, o.SwapEnable, swapService, chequebookService, batchStore, post, postageContractService, o.MineEnabled, mineSvc)
 	}
 
 	if err := kad.Start(p2pCtx); err != nil {

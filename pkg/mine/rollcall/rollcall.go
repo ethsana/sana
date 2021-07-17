@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/miner/rollcall/pb"
+	"github.com/ethersphere/bee/pkg/mine/rollcall/pb"
 	"github.com/ethersphere/bee/pkg/p2p"
 	"github.com/ethersphere/bee/pkg/p2p/protobuf"
 	"github.com/ethersphere/bee/pkg/swarm"

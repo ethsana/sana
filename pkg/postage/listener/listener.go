@@ -19,7 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/miner"
+	"github.com/ethersphere/bee/pkg/mine"
 	"github.com/ethersphere/bee/pkg/postage"
 	"github.com/ethersphere/bee/pkg/transaction"
 	"github.com/ethersphere/go-storage-incentives-abi/postageabi"
@@ -127,7 +127,7 @@ func (l *listener) filterQueryWithPostage(from, to *big.Int) ethereum.FilterQuer
 	}
 }
 
-func (l *listener) processMinerEvent(e types.Log, updater miner.EventUpdater) error {
+func (l *listener) processMinerEvent(e types.Log, updater mine.EventUpdater) error {
 	defer l.metrics.EventsProcessed.Inc()
 	switch e.Topics[0] {
 
@@ -227,7 +227,7 @@ func (l *listener) processPostageEvent(e types.Log, updater postage.EventUpdater
 
 func (l *listener) processEvent(e types.Log, updater interface{}) error {
 	switch up := updater.(type) {
-	case miner.EventUpdater:
+	case mine.EventUpdater:
 		return l.processMinerEvent(e, up)
 
 	case postage.EventUpdater:
@@ -248,7 +248,7 @@ func (l *listener) Listen(from uint64, up interface{}) <-chan struct{} {
 	var updater EventUpdater
 	var filterQuery func(from, to *big.Int) ethereum.FilterQuery
 	switch up_ := up.(type) {
-	case miner.EventUpdater:
+	case mine.EventUpdater:
 		updater = up_
 		filterQuery = l.filterQueryWithMiner
 

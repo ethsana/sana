@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/miner"
+	"github.com/ethersphere/bee/pkg/mine"
 	"github.com/ethersphere/bee/pkg/storage"
 )
 
@@ -24,29 +24,29 @@ const (
 // store implements postage.Storer
 type store struct {
 	store storage.StateStorer // State store backend to persist batches.
-	cs    *miner.ChainState   // the chain state
+	cs    *mine.ChainState    // the chain state
 
 	logger logging.Logger
 }
 
 // New constructs a new postage batch store.
 // It initialises both chain state and reserve state from the persistent state store
-func New(st storage.StateStorer, logger logging.Logger) (miner.Storer, error) {
-	cs := &miner.ChainState{}
+func New(st storage.StateStorer, logger logging.Logger) (mine.Storer, error) {
+	cs := &mine.ChainState{}
 	err := st.Get(chainStateKey, cs)
 
 	if err != nil {
 		if !errors.Is(err, storage.ErrNotFound) {
 			return nil, err
 		}
-		cs = &miner.ChainState{Block: 0}
+		cs = &mine.ChainState{Block: 0}
 	}
 	return &store{st, cs, logger}, nil
 }
 
 // Get returns a batch from the batchstore with the given ID.
-func (s *store) Get(id []byte) (*miner.Node, error) {
-	n := &miner.Node{}
+func (s *store) Get(id []byte) (*mine.Node, error) {
+	n := &mine.Node{}
 	err := s.store.Get(nodeKey(id), n)
 	if err != nil {
 		return nil, fmt.Errorf("get node %s: %w", hex.EncodeToString(id), err)
@@ -56,21 +56,21 @@ func (s *store) Get(id []byte) (*miner.Node, error) {
 }
 
 // Put stores a given batch in the batchstore and requires new values of Value and Depth
-func (s *store) Put(n *miner.Node) error {
+func (s *store) Put(n *mine.Node) error {
 	return s.store.Put(nodeKey(n.Node), n)
 }
 
 // PutChainState implements BatchStorer.
 // It purges expired batches and unreserves underfunded ones before it
 // stores the chain state in the batch store.
-func (s *store) PutChainState(cs *miner.ChainState) error {
+func (s *store) PutChainState(cs *mine.ChainState) error {
 	s.cs = cs
 	return s.store.Put(chainStateKey, cs)
 }
 
 // GetChainState implements BatchStorer. It returns the stored chain state from
 // the batch store.
-func (s *store) GetChainState() *miner.ChainState {
+func (s *store) GetChainState() *mine.ChainState {
 	return s.cs
 }
 
@@ -86,7 +86,7 @@ func (s *store) Reset() error {
 	}); err != nil {
 		return err
 	}
-	s.cs = &miner.ChainState{Block: 0}
+	s.cs = &mine.ChainState{Block: 0}
 	return nil
 }
 

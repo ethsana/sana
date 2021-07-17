@@ -182,7 +182,7 @@ func (c *command) initStartCmd() (err error) {
 				DeployGasPrice:             c.config.GetString(optionNameSwapDeploymentGasPrice),
 				WarmupTime:                 c.config.GetDuration(optionWarmUpTime),
 				ChainID:                    networkConfig.chainID,
-				MinerEnabled:               c.config.GetBool(optionNameMiner),
+				MineEnabled:                c.config.GetBool(optionNameMine),
 			})
 			if err != nil {
 				return err

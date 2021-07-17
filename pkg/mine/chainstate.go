@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package miner
+package mine
 
 // ChainState contains data the batch service reads from the chain.
 type ChainState struct {
