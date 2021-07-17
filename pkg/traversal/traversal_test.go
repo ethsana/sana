@@ -25,7 +25,7 @@ import (
 
 const (
 	dataCorpus       = "hello test world" // 16 bytes.
-	defaultMediaType = "bzz-manifest-mantaray"
+	defaultMediaType = "sana-manifest-mantaray"
 )
 
 func generateSample(size int) []byte {

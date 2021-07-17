@@ -24,7 +24,10 @@ import (
 var hash common.Hash = common.HexToHash("ff6ec1ed9250a6952fabac07c6eb103550dc65175373eea432fd115ce8bb2246")
 var addr common.Address = common.HexToAddress("abcdef")
 
-var postageStampAddress common.Address = common.HexToAddress("eeee")
+var (
+	postageStampAddress common.Address = common.HexToAddress("eeee")
+	minerAddress        common.Address = common.HexToAddress("mmmm")
+)
 
 func TestListener(t *testing.T) {
 	logger := logging.New(ioutil.Discard, 0)
@@ -48,7 +51,7 @@ func TestListener(t *testing.T) {
 			),
 		)
 
-		l := listener.New(logger, mf, postageStampAddress, 1, nil)
+		l := listener.New(logger, mf, postageStampAddress, minerAddress, 1, nil)
 		l.Listen(0, ev)
 
 		select {
@@ -79,7 +82,7 @@ func TestListener(t *testing.T) {
 				topup.toLog(496),
 			),
 		)
-		l := listener.New(logger, mf, postageStampAddress, 1, nil)
+		l := listener.New(logger, mf, postageStampAddress, minerAddress, 1, nil)
 		l.Listen(0, ev)
 
 		select {
@@ -110,7 +113,7 @@ func TestListener(t *testing.T) {
 				depthIncrease.toLog(496),
 			),
 		)
-		l := listener.New(logger, mf, postageStampAddress, 1, nil)
+		l := listener.New(logger, mf, postageStampAddress, minerAddress, 1, nil)
 		l.Listen(0, ev)
 
 		select {
@@ -139,7 +142,7 @@ func TestListener(t *testing.T) {
 				priceUpdate.toLog(496),
 			),
 		)
-		l := listener.New(logger, mf, postageStampAddress, 1, nil)
+		l := listener.New(logger, mf, postageStampAddress, minerAddress, 1, nil)
 		l.Listen(0, ev)
 		select {
 		case e := <-evC:
@@ -191,7 +194,7 @@ func TestListener(t *testing.T) {
 			),
 			WithBlockNumber(blockNumber),
 		)
-		l := listener.New(logger, mf, postageStampAddress, 1, nil)
+		l := listener.New(logger, mf, postageStampAddress, minerAddress, 1, nil)
 		l.Listen(0, ev)
 
 		select {
@@ -260,7 +263,7 @@ func TestListener(t *testing.T) {
 		mf := newMockFilterer(
 			WithBlockNumberError(errors.New("dummy error")),
 		)
-		l := listener.New(logger, mf, postageStampAddress, 1, shutdowner)
+		l := listener.New(logger, mf, postageStampAddress, minerAddress, 1, shutdowner)
 		l.Listen(0, ev)
 
 		start := time.Now()

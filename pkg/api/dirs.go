@@ -35,15 +35,15 @@ import (
 func (s *server) dirUploadHandler(w http.ResponseWriter, r *http.Request, storer storage.Storer) {
 	logger := tracing.NewLoggerWithTraceID(r.Context(), s.logger)
 	if r.Body == http.NoBody {
-		logger.Error("bzz upload dir: request has no body")
+		logger.Error("sana upload dir: request has no body")
 		jsonhttp.BadRequest(w, errInvalidRequest)
 		return
 	}
 	contentType := r.Header.Get(contentTypeHeader)
 	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		logger.Errorf("bzz upload dir: invalid content-type")
-		logger.Debugf("bzz upload dir: invalid content-type err: %v", err)
+		logger.Errorf("sana upload dir: invalid content-type")
+		logger.Debugf("sana upload dir: invalid content-type err: %v", err)
 		jsonhttp.BadRequest(w, errInvalidContentType)
 		return
 	}
@@ -55,7 +55,7 @@ func (s *server) dirUploadHandler(w http.ResponseWriter, r *http.Request, storer
 	case multiPartFormData:
 		dReader = &multipartReader{r: multipart.NewReader(r.Body, params["boundary"])}
 	default:
-		logger.Error("bzz upload dir: invalid content-type for directory upload")
+		logger.Error("sana upload dir: invalid content-type for directory upload")
 		jsonhttp.BadRequest(w, errInvalidContentType)
 		return
 	}
@@ -63,8 +63,8 @@ func (s *server) dirUploadHandler(w http.ResponseWriter, r *http.Request, storer
 
 	tag, created, err := s.getOrCreateTag(r.Header.Get(SwarmTagHeader))
 	if err != nil {
-		logger.Debugf("bzz upload dir: get or create tag: %v", err)
-		logger.Error("bzz upload dir: get or create tag")
+		logger.Debugf("sana upload dir: get or create tag: %v", err)
+		logger.Error("sana upload dir: get or create tag")
 		jsonhttp.InternalServerError(w, nil)
 		return
 	}
@@ -85,8 +85,8 @@ func (s *server) dirUploadHandler(w http.ResponseWriter, r *http.Request, storer
 		created,
 	)
 	if err != nil {
-		logger.Debugf("bzz upload dir: store dir err: %v", err)
-		logger.Errorf("bzz upload dir: store dir")
+		logger.Debugf("sana upload dir: store dir err: %v", err)
+		logger.Errorf("sana upload dir: store dir")
 		switch {
 		case errors.Is(err, postage.ErrBucketFull):
 			jsonhttp.PaymentRequired(w, "batch is overissued")
@@ -98,8 +98,8 @@ func (s *server) dirUploadHandler(w http.ResponseWriter, r *http.Request, storer
 	if created {
 		_, err = tag.DoneSplit(reference)
 		if err != nil {
-			logger.Debugf("bzz upload dir: done split: %v", err)
-			logger.Error("bzz upload dir: done split failed")
+			logger.Debugf("sana upload dir: done split: %v", err)
+			logger.Error("sana upload dir: done split failed")
 			jsonhttp.InternalServerError(w, nil)
 			return
 		}
@@ -107,8 +107,8 @@ func (s *server) dirUploadHandler(w http.ResponseWriter, r *http.Request, storer
 
 	if strings.ToLower(r.Header.Get(SwarmPinHeader)) == "true" {
 		if err := s.pinning.CreatePin(r.Context(), reference, false); err != nil {
-			logger.Debugf("bzz upload dir: creation of pin for %q failed: %v", reference, err)
-			logger.Error("bzz upload dir: creation of pin failed")
+			logger.Debugf("sana upload dir: creation of pin for %q failed: %v", reference, err)
+			logger.Error("sana upload dir: creation of pin failed")
 			jsonhttp.InternalServerError(w, nil)
 			return
 		}

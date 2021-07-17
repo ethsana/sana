@@ -299,6 +299,12 @@ func GetTxNextBlock(ctx context.Context, logger logging.Logger, backend transact
 		return nil, err
 	}
 
+	// fix ropsten block.hash exception
+	_, err = transaction.WaitBlock(ctx, backend, duration, new(big.Int).Add(tx.BlockNumber, big.NewInt(2)))
+	if err != nil {
+		return nil, err
+	}
+
 	block, err := transaction.WaitBlock(ctx, backend, duration, big.NewInt(0).Add(tx.BlockNumber, big.NewInt(1)))
 	if err != nil {
 		return nil, err

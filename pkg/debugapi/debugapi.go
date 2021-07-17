@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethersphere/bee/pkg/accounting"
 	"github.com/ethersphere/bee/pkg/logging"
+	"github.com/ethersphere/bee/pkg/miner"
 	"github.com/ethersphere/bee/pkg/p2p"
 	"github.com/ethersphere/bee/pkg/pingpong"
 	"github.com/ethersphere/bee/pkg/postage"
@@ -57,6 +58,8 @@ type Service struct {
 	corsAllowedOrigins []string
 	metricsRegistry    *prometheus.Registry
 	lightNodes         *lightnode.Container
+	minerEnabled       bool
+	mine               miner.Service
 	// handler is changed in the Configure method
 	handler   http.Handler
 	handlerMu sync.RWMutex
@@ -85,7 +88,7 @@ func New(publicKey, pssPublicKey ecdsa.PublicKey, ethereumAddress common.Address
 // Configure injects required dependencies and configuration parameters and
 // constructs HTTP routes that depend on them. It is intended and safe to call
 // this method only once.
-func (s *Service) Configure(overlay swarm.Address, p2p p2p.DebugService, pingpong pingpong.Interface, topologyDriver topology.Driver, lightNodes *lightnode.Container, storer storage.Storer, tags *tags.Tags, accounting accounting.Interface, pseudosettle settlement.Interface, chequebookEnabled bool, swap swap.Interface, chequebook chequebook.Service, batchStore postage.Storer, post postage.Service, postageContract postagecontract.Interface) {
+func (s *Service) Configure(overlay swarm.Address, p2p p2p.DebugService, pingpong pingpong.Interface, topologyDriver topology.Driver, lightNodes *lightnode.Container, storer storage.Storer, tags *tags.Tags, accounting accounting.Interface, pseudosettle settlement.Interface, chequebookEnabled bool, swap swap.Interface, chequebook chequebook.Service, batchStore postage.Storer, post postage.Service, postageContract postagecontract.Interface, minerEnabled bool, miner miner.Service) {
 	s.p2p = p2p
 	s.pingpong = pingpong
 	s.topologyDriver = topologyDriver
@@ -101,6 +104,8 @@ func (s *Service) Configure(overlay swarm.Address, p2p p2p.DebugService, pingpon
 	s.overlay = &overlay
 	s.post = post
 	s.postageContract = postageContract
+	s.minerEnabled = minerEnabled
+	s.mine = miner
 
 	s.setRouter(s.newRouter())
 }

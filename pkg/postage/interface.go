@@ -46,7 +46,7 @@ type RadiusSetter interface {
 // Listener provides a blockchain event iterator.
 type Listener interface {
 	io.Closer
-	Listen(from uint64, updater EventUpdater) <-chan struct{}
+	Listen(from uint64, updater interface{}) <-chan struct{}
 }
 
 type BatchCreationListener interface {

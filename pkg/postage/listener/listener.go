@@ -19,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethersphere/bee/pkg/logging"
+	"github.com/ethersphere/bee/pkg/miner"
 	"github.com/ethersphere/bee/pkg/postage"
 	"github.com/ethersphere/bee/pkg/transaction"
 	"github.com/ethersphere/go-storage-incentives-abi/postageabi"
@@ -42,6 +43,14 @@ var (
 	priceUpdateTopic = postageStampABI.Events["PriceUpdate"].ID
 )
 
+var (
+	minerABI = parseABI(_MinerAbi)
+
+	minerTopic = minerABI.Events[`Miner`].ID
+
+	trustTopic = minerABI.Events[`Trust`].ID
+)
+
 type BlockHeightContractFilterer interface {
 	bind.ContractFilterer
 	BlockNumber(context.Context) (uint64, error)
@@ -59,6 +68,7 @@ type listener struct {
 	blockTime uint64
 
 	postageStampAddress common.Address
+	minerAddress        common.Address
 	quit                chan struct{}
 	wg                  sync.WaitGroup
 	metrics             metrics
@@ -69,6 +79,7 @@ func New(
 	logger logging.Logger,
 	ev BlockHeightContractFilterer,
 	postageStampAddress common.Address,
+	minerAddress common.Address,
 	blockTime uint64,
 	shutdowner Shutdowner,
 ) postage.Listener {
@@ -77,13 +88,28 @@ func New(
 		ev:                  ev,
 		blockTime:           blockTime,
 		postageStampAddress: postageStampAddress,
+		minerAddress:        minerAddress,
 		quit:                make(chan struct{}),
 		metrics:             newMetrics(),
 		shutdowner:          shutdowner,
 	}
 }
 
-func (l *listener) filterQuery(from, to *big.Int) ethereum.FilterQuery {
+func (l *listener) filterQueryWithMiner(from, to *big.Int) ethereum.FilterQuery {
+	return ethereum.FilterQuery{
+		FromBlock: from,
+		ToBlock:   to,
+		Addresses: []common.Address{l.minerAddress},
+		Topics: [][]common.Hash{
+			{
+				minerTopic,
+				trustTopic,
+			},
+		},
+	}
+}
+
+func (l *listener) filterQueryWithPostage(from, to *big.Int) ethereum.FilterQuery {
 	return ethereum.FilterQuery{
 		FromBlock: from,
 		ToBlock:   to,
@@ -101,7 +127,44 @@ func (l *listener) filterQuery(from, to *big.Int) ethereum.FilterQuery {
 	}
 }
 
-func (l *listener) processEvent(e types.Log, updater postage.EventUpdater) error {
+func (l *listener) processMinerEvent(e types.Log, updater miner.EventUpdater) error {
+	defer l.metrics.EventsProcessed.Inc()
+	switch e.Topics[0] {
+
+	case minerTopic:
+		c := &minerEvent{}
+		err := transaction.ParseEvent(&minerABI, `Miner`, c, e)
+		if err != nil {
+			return err
+		}
+		l.metrics.MinerCounter.Inc()
+		return updater.Miner(
+			c.Node[:],
+			c.Chequebook.Bytes(),
+			e.TxHash.Bytes(),
+		)
+
+	case trustTopic:
+		c := &trustEvent{}
+		err := transaction.ParseEvent(&minerABI, `Trust`, c, e)
+		if err != nil {
+			return err
+		}
+		l.metrics.TrustCounter.Inc()
+		return updater.Trust(
+			c.Node[:],
+			c.Trust,
+			e.TxHash.Bytes(),
+		)
+
+	default:
+		l.metrics.EventErrors.Inc()
+		return errors.New("unknown event")
+	}
+
+}
+
+func (l *listener) processPostageEvent(e types.Log, updater postage.EventUpdater) error {
 	defer l.metrics.EventsProcessed.Inc()
 	switch e.Topics[0] {
 	case batchCreatedTopic:
@@ -162,7 +225,42 @@ func (l *listener) processEvent(e types.Log, updater postage.EventUpdater) error
 	}
 }
 
-func (l *listener) Listen(from uint64, updater postage.EventUpdater) <-chan struct{} {
+func (l *listener) processEvent(e types.Log, updater interface{}) error {
+	switch up := updater.(type) {
+	case miner.EventUpdater:
+		return l.processMinerEvent(e, up)
+
+	case postage.EventUpdater:
+		return l.processPostageEvent(e, up)
+
+	}
+	return errors.New(`unkonw updater`)
+}
+
+type EventUpdater interface {
+	UpdateBlockNumber(blockNumber uint64) error
+
+	TransactionStart() error
+	TransactionEnd() error
+}
+
+func (l *listener) Listen(from uint64, up interface{}) <-chan struct{} {
+	var updater EventUpdater
+	var filterQuery func(from, to *big.Int) ethereum.FilterQuery
+	switch up_ := up.(type) {
+	case miner.EventUpdater:
+		updater = up_
+		filterQuery = l.filterQueryWithMiner
+
+	case postage.EventUpdater:
+		updater = up_
+		filterQuery = l.filterQueryWithPostage
+
+	default:
+		// Todo
+		panic(`>>>>>>>>>>>>>>>>>>>`)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		<-l.quit
@@ -218,7 +316,7 @@ func (l *listener) Listen(from uint64, updater postage.EventUpdater) <-chan stru
 			}
 			l.metrics.BackendCalls.Inc()
 
-			events, err := l.ev.FilterLogs(ctx, l.filterQuery(big.NewInt(int64(from)), big.NewInt(int64(to))))
+			events, err := l.ev.FilterLogs(ctx, filterQuery(big.NewInt(int64(from)), big.NewInt(int64(to))))
 			if err != nil {
 				l.metrics.BackendErrors.Inc()
 				return err
@@ -325,6 +423,16 @@ type batchDepthIncreaseEvent struct {
 
 type priceUpdateEvent struct {
 	Price *big.Int
+}
+
+type minerEvent struct {
+	Node       [32]byte
+	Chequebook common.Address
+}
+
+type trustEvent struct {
+	Node  [32]byte
+	Trust bool
 }
 
 func totalTimeMetric(metric prometheus.Counter, start time.Time) {
