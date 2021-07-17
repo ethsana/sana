@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	version    = "1.0.1" // manually set semantic version number
+	version    = "0.0.1" // manually set semantic version number
 	commitHash string    // automatically set git commit hash
 	commitTime string    // automatically set git commit time
 
@@ -18,7 +18,7 @@ var (
 		if commitHash != "" {
 			return version + "-" + commitHash
 		}
-		return version + "-dev"
+		return version
 	}()
 
 	// CommitTime returns the time of the commit from which this code was derived.

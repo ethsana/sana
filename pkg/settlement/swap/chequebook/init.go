@@ -66,20 +66,20 @@ func checkBalance(
 			}
 
 			if insufficientETH && insufficientERC20 {
-				logger.Warningf("cannot continue until there is sufficient ETH (for Gas) and at least %d BZZ available on %x", neededERC20, overlayEthAddress)
+				logger.Warningf("cannot continue until there is sufficient ETH (for Gas) and at least %d SANA available on %x", neededERC20, overlayEthAddress)
 			} else if insufficientETH {
 				logger.Warningf("cannot continue until there is sufficient ETH (for Gas) available on %x", overlayEthAddress)
 			} else {
-				logger.Warningf("cannot continue until there is at least %d BZZ available on %x", neededERC20, overlayEthAddress)
+				logger.Warningf("cannot continue until there is at least %d SANA available on %x", neededERC20, overlayEthAddress)
 			}
 			if chainId == 5 {
-				logger.Warningf("learn how to fund your node by visiting our docs at https://docs.ethswarm.org/docs/installation/fund-your-node")
+				logger.Warningf("learn how to fund your node by visiting our docs at https://docs.ethsana.org/docs/installation/fund-your-node")
 			}
 			select {
 			case <-time.After(balanceCheckBackoffDuration):
 			case <-timeoutCtx.Done():
 				if insufficientERC20 {
-					return fmt.Errorf("insufficient BZZ for initial deposit")
+					return fmt.Errorf("insufficient SANA for initial deposit")
 				} else {
 					return fmt.Errorf("insufficient ETH for initial deposit")
 				}

@@ -20,7 +20,7 @@ import (
 
 const (
 	defaultENSContractAddress = "00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
-	swarmContentHashPrefix    = "/swarm/"
+	swarmContentHashPrefix    = "/sana/"
 )
 
 // Address is the swarm bzz address.
@@ -120,7 +120,7 @@ func (c *Client) Resolve(name string) (Address, error) {
 	}
 
 	// Ensure that the content hash string is in a valid format, eg.
-	// "/swarm/<address>".
+	// "/sana/<address>".
 	if !strings.HasPrefix(hash, swarmContentHashPrefix) {
 		return swarm.ZeroAddress, fmt.Errorf("contenthash %s: %w", hash, ErrInvalidContentHash)
 	}

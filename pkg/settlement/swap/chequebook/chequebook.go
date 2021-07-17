@@ -328,7 +328,7 @@ func (s *service) Withdraw(ctx context.Context, amount *big.Int) (hash common.Ha
 		GasPrice:    sctx.GetGasPrice(ctx),
 		GasLimit:    95000,
 		Value:       big.NewInt(0),
-		Description: fmt.Sprintf("chequebook withdrawal of %d BZZ", amount),
+		Description: fmt.Sprintf("chequebook withdrawal of %d SANA", amount),
 	}
 
 	txHash, err := s.transactionService.Send(ctx, request)

@@ -17,6 +17,10 @@ type metrics struct {
 	DepthCounter   prometheus.Counter
 	PriceCounter   prometheus.Counter
 
+	// miner event counters
+	MinerCounter prometheus.Counter
+	TrustCounter prometheus.Counter
+
 	// total calls to chain backend
 	BackendCalls  prometheus.Counter
 	BackendErrors prometheus.Counter
@@ -77,6 +81,21 @@ func newMetrics() metrics {
 			Subsystem: subsystem,
 			Name:      "price_events",
 			Help:      "total price change events handled",
+		}),
+
+		// miner event counters
+		MinerCounter: prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: m.Namespace,
+			Subsystem: subsystem,
+			Name:      "minet_events",
+			Help:      "hash miner regist",
+		}),
+
+		TrustCounter: prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: m.Namespace,
+			Subsystem: subsystem,
+			Name:      "trust_events",
+			Help:      "new trust miner",
 		}),
 
 		// total call

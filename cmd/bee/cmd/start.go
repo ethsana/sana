@@ -43,7 +43,7 @@ func (c *command) initStartCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "start",
-		Short: "Start a Swarm node",
+		Short: "Start a Sana node",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			if len(args) > 0 {
 				return cmd.Help()
@@ -81,32 +81,21 @@ func (c *command) initStartCmd() (err error) {
 				}
 			}
 
-			beeASCII := `
-Welcome to Swarm.... Bzzz Bzzzz Bzzzz
-                \     /
-            \    o ^ o    /
-              \ (     ) /
-   ____________(%%%%%%%)____________
-  (     /   /  )%%%%%%%(  \   \     )
-  (___/___/__/           \__\___\___)
-     (     /  /(%%%%%%%)\  \     )
-      (__/___/ (%%%%%%%) \___\__)
-              /(       )\
-            /   (%%%%%)   \
-                 (%%%)
-                   !                   `
+			beeASCII := `Welcome to Sana.... 
+
+   ###       ##     ##     ##     ##
+ ##   ##   ##  ##   ###    ##   ##  ##
+  ##   #  ##    ##  ####   ##  ##    ##
+   ##     ##    ##  ## ##  ##  ##    ##
+    ##    ########  ##  ## ##  ########
+ #   ##   ##    ##  ##   ####  ##    ##
+ ##   ##  ##    ##  ##    ###  ##    ##
+   ###    ##    ##  ##     ##  ##    ##
+`
 
 			fmt.Println(beeASCII)
-			fmt.Print(`
-DISCLAIMER:
-This software is provided to you "as is", use at your own risk and without warranties of any kind.
-It is your responsibility to read and understand how Swarm works and the implications of running this software.
-The usage of Bee involves various risks, including, but not limited to:
-damage to hardware or loss of funds associated with the Ethereum account connected to your node.
-No developers or entity involved will be liable for any claims and damages associated with your use,
-inability to use, or your interaction with other nodes or the software.`)
 
-			fmt.Printf("\n\nversion: %v - planned to be supported until %v, please follow https://ethswarm.org/\n\n", bee.Version, endSupportDate())
+			// fmt.Printf("\n\nversion: %v - planned to be supported until %v, please follow https://ethsana.org/\n\n", bee.Version, endSupportDate())
 
 			debugAPIAddr := c.config.GetString(optionNameDebugAPIAddr)
 			if !c.config.GetBool(optionNameDebugAPIEnable) {
@@ -193,6 +182,7 @@ inability to use, or your interaction with other nodes or the software.`)
 				DeployGasPrice:             c.config.GetString(optionNameSwapDeploymentGasPrice),
 				WarmupTime:                 c.config.GetDuration(optionWarmUpTime),
 				ChainID:                    networkConfig.chainID,
+				MinerEnabled:               c.config.GetBool(optionNameMiner),
 			})
 			if err != nil {
 				return err
@@ -384,15 +374,15 @@ func (c *command) configureSigner(cmd *cobra.Command, logger logging.Logger) (co
 		}
 	} else {
 		logger.Warning("clef is not enabled; portability and security of your keys is sub optimal")
-		swarmPrivateKey, _, err := keystore.Key("swarm", password)
+		swarmPrivateKey, _, err := keystore.Key("sana", password)
 		if err != nil {
-			return nil, fmt.Errorf("swarm key: %w", err)
+			return nil, fmt.Errorf("sana key: %w", err)
 		}
 		signer = crypto.NewDefaultSigner(swarmPrivateKey)
 		publicKey = &swarmPrivateKey.PublicKey
 	}
 
-	logger.Infof("swarm public key %x", crypto.EncodeSecp256k1PublicKey(publicKey))
+	logger.Infof("sana public key %x", crypto.EncodeSecp256k1PublicKey(publicKey))
 
 	libp2pPrivateKey, created, err := keystore.Key("libp2p", password)
 	if err != nil {
@@ -443,18 +433,22 @@ func getConfigByNetworkID(networkID uint64, defaultBlockTime uint64) *networkCon
 	}
 	switch networkID {
 	case 1:
-		config.bootNodes = []string{"/dnsaddr/mainnet.ethswarm.org"}
+		config.bootNodes = []string{"/dnsaddr/mainnet.ethsana.org"}
 		config.blockTime = uint64(5 * time.Second)
 		config.chainID = 100
 
 	case 3:
-		config.bootNodes = []string{}
+		config.bootNodes = []string{"/dnsaddr/testnet.ethsana.org"}
 		config.chainID = 3
 
 	case 5: //staging
 		config.chainID = 5
 	case 10: //test
 		config.chainID = 5
+
+	case 31337:
+		config.bootNodes = []string{"/dnsaddr/testnet.ethsana.org"}
+		config.chainID = 31337
 	default: //will use the value provided by the chain
 		config.chainID = -1
 	}

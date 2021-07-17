@@ -17,7 +17,7 @@ import (
 const (
 	// ManifestMantarayContentType represents content type used for noting that
 	// specific file should be processed as mantaray manifest.
-	ManifestMantarayContentType = "application/bzz-manifest-mantaray+octet-stream"
+	ManifestMantarayContentType = "application/sana-manifest-mantaray+octet-stream"
 )
 
 type mantarayManifest struct {

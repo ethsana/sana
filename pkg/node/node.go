@@ -37,6 +37,11 @@ import (
 	"github.com/ethersphere/bee/pkg/localstore"
 	"github.com/ethersphere/bee/pkg/logging"
 	"github.com/ethersphere/bee/pkg/metrics"
+	"github.com/ethersphere/bee/pkg/miner"
+	"github.com/ethersphere/bee/pkg/miner/minercontract"
+	"github.com/ethersphere/bee/pkg/miner/nodeservice"
+	"github.com/ethersphere/bee/pkg/miner/nodestore"
+	"github.com/ethersphere/bee/pkg/miner/rollcall"
 	"github.com/ethersphere/bee/pkg/netstore"
 	"github.com/ethersphere/bee/pkg/p2p"
 	"github.com/ethersphere/bee/pkg/p2p/libp2p"
@@ -153,6 +158,7 @@ type Options struct {
 	DeployGasPrice             string
 	WarmupTime                 time.Duration
 	ChainID                    int64
+	MinerEnabled               bool
 }
 
 const (
@@ -352,6 +358,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 	if err != nil {
 		return nil, err
 	}
+	logger.Infof("using the overlay address %s", swarmAddress.String())
 
 	lightNodes := lightnode.NewContainer(swarmAddress)
 
@@ -419,6 +426,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		postageContractService postagecontract.Interface
 		batchSvc               postage.EventUpdater
 		eventListener          postage.Listener
+		mine                   miner.Service
 	)
 
 	var postageSyncStart uint64 = 0
@@ -437,7 +445,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 			postageSyncStart = startBlock
 		}
 
-		eventListener = listener.New(logger, swapBackend, postageContractAddress, o.BlockTime, &pidKiller{node: b})
+		eventListener = listener.New(logger, swapBackend, postageContractAddress, chainCfg.MinerAddress, o.BlockTime, &pidKiller{node: b})
 		b.listenerCloser = eventListener
 
 		batchSvc, err = batchservice.New(stateStore, batchStore, logger, eventListener, overlayEthAddress.Bytes(), post, sha3.New256)
@@ -457,6 +465,26 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 			transactionService,
 			post,
 		)
+
+		if o.MinerEnabled {
+			nodeStore, err := nodestore.New(stateStore, logger)
+			if err != nil {
+				return nil, fmt.Errorf("nodestore: %w", err)
+			}
+
+			minerContract := minercontract.New(swapBackend, transactionService, chainCfg.MinerAddress)
+
+			nodeSvc, err := nodeservice.New(stateStore, nodeStore, logger, eventListener, sha3.New256)
+			if err != nil {
+				return nil, err
+			}
+
+			mine, err = miner.NewService(swarmAddress, chequebookService.Address(), minerContract, nodeSvc, signer, logger, o.DeployGasPrice)
+			if err != nil {
+				return nil, err
+			}
+
+		}
 	}
 
 	if !o.Standalone {
@@ -476,8 +504,8 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 	}
 
 	// Construct protocols.
-	pingPong := pingpong.New(p2ps, logger, tracer)
 
+	pingPong := pingpong.New(p2ps, logger, tracer)
 	if err = p2ps.AddProtocol(pingPong.Protocol()); err != nil {
 		return nil, fmt.Errorf("pingpong service: %w", err)
 	}
@@ -516,6 +544,15 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 	hive.SetAddPeersHandler(kad.AddPeers)
 	p2ps.SetPickyNotifier(kad)
 	batchStore.SetRadiusSetter(kad)
+	if o.MinerEnabled {
+		rollcall := rollcall.New(p2ps, logger, swarmAddress)
+		if err = p2ps.AddProtocol(rollcall.Protocol()); err != nil {
+			return nil, fmt.Errorf("rollcall service: %w", err)
+		}
+		mine.SetRollCall(rollcall)
+		rollcall.SetTopology(kad)
+		rollcall.SetCertificateObserver(mine)
+	}
 
 	if batchSvc != nil {
 		syncedChan, err := batchSvc.Start(postageSyncStart)
@@ -531,6 +568,21 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		// this stage
 		<-syncedChan
 
+	}
+
+	if o.MinerEnabled && mine != nil {
+		syncedChan, err := mine.Start(postageSyncStart)
+		if err != nil {
+			return nil, fmt.Errorf("unable to start node service: %w", err)
+		}
+		// wait for the postage contract listener to sync
+		logger.Info("waiting to sync miner contract data, this may take a while... more info available in Debug loglevel")
+
+		// arguably this is not a very nice solution since we dont support
+		// interrupts at this stage of the application lifecycle. some changes
+		// would be needed on the cmd level to support context cancellation at
+		// this stage
+		<-syncedChan
 	}
 
 	minThreshold := big.NewInt(2 * refreshRate)
@@ -778,7 +830,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		}
 
 		// inject dependencies and configure full debug api http path routes
-		debugAPIService.Configure(swarmAddress, p2ps, pingPong, kad, lightNodes, storer, tagService, acc, pseudosettleService, o.SwapEnable, swapService, chequebookService, batchStore, post, postageContractService)
+		debugAPIService.Configure(swarmAddress, p2ps, pingPong, kad, lightNodes, storer, tagService, acc, pseudosettleService, o.SwapEnable, swapService, chequebookService, batchStore, post, postageContractService, o.MinerEnabled, mine)
 	}
 
 	if err := kad.Start(p2pCtx); err != nil {

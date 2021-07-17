@@ -182,6 +182,16 @@ func (s *Service) newRouter() *mux.Router {
 		})
 	}
 
+	if s.minerEnabled {
+		router.Handle("/miner/withdraw", jsonhttp.MethodHandler{
+			"POST": http.HandlerFunc(s.minerWithdrawHandler),
+		})
+
+		router.Handle("/miner/pending", jsonhttp.MethodHandler{
+			"GET": http.HandlerFunc(s.minerPendingHandler),
+		})
+	}
+
 	router.Handle("/tags/{id}", jsonhttp.MethodHandler{
 		"GET": http.HandlerFunc(s.getTagHandler),
 	})
