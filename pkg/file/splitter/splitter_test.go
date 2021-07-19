@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/file"
-	"github.com/ethersphere/bee/pkg/file/splitter"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/storage/mock"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/file"
+	"github.com/ethsana/sana/pkg/file/splitter"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/storage/mock"
+	"github.com/ethsana/sana/pkg/swarm"
 	mockbytes "gitlab.com/nolash/go-mockbytes"
 )
 
@@ -188,7 +188,7 @@ func TestUnalignedSplit(t *testing.T) {
 go test -v -bench=. -run Bench -benchmem
 goos: linux
 goarch: amd64
-pkg: github.com/ethersphere/bee/pkg/file/splitter
+pkg: github.com/ethsana/sana/pkg/file/splitter
 BenchmarkSplitter
 BenchmarkSplitter/1000-bytes
 BenchmarkSplitter/1000-bytes-4         	   12667	     95965 ns/op	  154870 B/op	     367 allocs/op
@@ -203,7 +203,7 @@ BenchmarkSplitter/10000000-bytes-4     	       4	 295615658 ns/op	186417904 B/op
 BenchmarkSplitter/100000000-bytes
 BenchmarkSplitter/100000000-bytes-4    	       1	2972826021 ns/op	1861374352 B/op	11321235 allocs/op
 PASS
-ok  	github.com/ethersphere/bee/pkg/file/splitter	22.476s
+ok  	github.com/ethsana/sana/pkg/file/splitter	22.476s
 */
 
 func BenchmarkSplitter(b *testing.B) {

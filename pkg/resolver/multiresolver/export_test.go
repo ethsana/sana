@@ -4,7 +4,7 @@
 
 package multiresolver
 
-import "github.com/ethersphere/bee/pkg/logging"
+import "github.com/ethsana/sana/pkg/logging"
 
 func GetLogger(mr *MultiResolver) logging.Logger {
 	return mr.logger

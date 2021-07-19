@@ -9,10 +9,10 @@ import (
 	"math/big"
 	"net/http"
 
-	"github.com/ethersphere/bee/pkg/bigint"
-	"github.com/ethersphere/bee/pkg/jsonhttp"
-	"github.com/ethersphere/bee/pkg/settlement"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/bigint"
+	"github.com/ethsana/sana/pkg/jsonhttp"
+	"github.com/ethsana/sana/pkg/settlement"
+	"github.com/ethsana/sana/pkg/swarm"
 	"github.com/gorilla/mux"
 )
 

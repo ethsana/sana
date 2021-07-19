@@ -23,8 +23,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/encryption"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/encryption"
+	"github.com/ethsana/sana/pkg/swarm"
 	"golang.org/x/crypto/sha3"
 )
 

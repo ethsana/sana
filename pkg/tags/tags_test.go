@@ -23,9 +23,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	statestore "github.com/ethersphere/bee/pkg/statestore/mock"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/logging"
+	statestore "github.com/ethsana/sana/pkg/statestore/mock"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 func TestAll(t *testing.T) {

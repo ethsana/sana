@@ -11,15 +11,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/file/pipeline/builder"
-	"github.com/ethersphere/bee/pkg/pushsync"
-	psmock "github.com/ethersphere/bee/pkg/pushsync/mock"
-	"github.com/ethersphere/bee/pkg/steward"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/storage/mock"
-	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/bee/pkg/topology"
-	"github.com/ethersphere/bee/pkg/traversal"
+	"github.com/ethsana/sana/pkg/file/pipeline/builder"
+	"github.com/ethsana/sana/pkg/pushsync"
+	psmock "github.com/ethsana/sana/pkg/pushsync/mock"
+	"github.com/ethsana/sana/pkg/steward"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/storage/mock"
+	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/topology"
+	"github.com/ethsana/sana/pkg/traversal"
 )
 
 func TestSteward(t *testing.T) {

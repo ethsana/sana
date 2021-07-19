@@ -9,15 +9,15 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ethersphere/bee/pkg/encryption"
-	"github.com/ethersphere/bee/pkg/file/pipeline"
-	"github.com/ethersphere/bee/pkg/file/pipeline/bmt"
-	enc "github.com/ethersphere/bee/pkg/file/pipeline/encryption"
-	"github.com/ethersphere/bee/pkg/file/pipeline/feeder"
-	"github.com/ethersphere/bee/pkg/file/pipeline/hashtrie"
-	"github.com/ethersphere/bee/pkg/file/pipeline/store"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/encryption"
+	"github.com/ethsana/sana/pkg/file/pipeline"
+	"github.com/ethsana/sana/pkg/file/pipeline/bmt"
+	enc "github.com/ethsana/sana/pkg/file/pipeline/encryption"
+	"github.com/ethsana/sana/pkg/file/pipeline/feeder"
+	"github.com/ethsana/sana/pkg/file/pipeline/hashtrie"
+	"github.com/ethsana/sana/pkg/file/pipeline/store"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // NewPipelineBuilder returns the appropriate pipeline according to the specified parameters

@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/ethersphere/bee/pkg/file"
-	"github.com/ethersphere/bee/pkg/file/joiner"
-	"github.com/ethersphere/bee/pkg/file/pipeline/builder"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/file"
+	"github.com/ethsana/sana/pkg/file/joiner"
+	"github.com/ethsana/sana/pkg/file/pipeline/builder"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 type PutGetter interface {

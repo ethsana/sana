@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/p2p"
-	"github.com/ethersphere/bee/pkg/pricer/headerutils"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/p2p"
+	"github.com/ethsana/sana/pkg/pricer/headerutils"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 func TestMakePricingHeaders(t *testing.T) {

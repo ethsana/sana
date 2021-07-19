@@ -5,7 +5,7 @@
 package pullsync
 
 import (
-	m "github.com/ethersphere/bee/pkg/metrics"
+	m "github.com/ethsana/sana/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

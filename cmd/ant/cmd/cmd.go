@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/swarm"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -70,7 +70,6 @@ const (
 	optionWarmUpTime                     = "warmup-time"
 	optionNameMainNet                    = "mainnet"
 	optionNameMine                       = "mine"
-	optionNameMineInitialDeposit         = "mine-initial-deposit"
 	optionNameMineContractAddress        = "mine-address"
 )
 
@@ -129,6 +128,7 @@ func newCommand(opts ...option) (c *command, err error) {
 
 	c.initVersionCmd()
 	c.initDBCmd()
+	c.initTeeCmd()
 
 	if err := c.initConfigurateOptionsCmd(); err != nil {
 		return nil, err
@@ -216,7 +216,7 @@ func (c *command) setAllFlags(cmd *cobra.Command) {
 	cmd.Flags().StringSlice(optionNameBootnodes, []string{"/dnsaddr/testnet.ethsana.org"}, "initial nodes to connect to")
 	cmd.Flags().Bool(optionNameDebugAPIEnable, false, "enable debug HTTP API")
 	cmd.Flags().String(optionNameDebugAPIAddr, ":1635", "debug HTTP API listen address")
-	cmd.Flags().Uint64(optionNameNetworkID, 3, "ID of the Sana network")
+	cmd.Flags().Uint64(optionNameNetworkID, 5, "ID of the Sana network")
 	cmd.Flags().StringSlice(optionCORSAllowedOrigins, []string{}, "origins with CORS headers enabled")
 	cmd.Flags().Bool(optionNameStandalone, false, "whether we want the node to start with no listen addresses for p2p")
 	cmd.Flags().Bool(optionNameTracingEnabled, false, "enable tracing")
@@ -249,7 +249,6 @@ func (c *command) setAllFlags(cmd *cobra.Command) {
 	cmd.Flags().Duration(optionWarmUpTime, time.Minute*20, "time to warmup the node before pull/push protocols can be kicked off.")
 	cmd.Flags().Bool(optionNameMainNet, false, "triggers connect to main net bootnodes.")
 	cmd.Flags().Bool(optionNameMine, true, "enable sana miner")
-	cmd.Flags().String(optionNameMineInitialDeposit, "500000000000000000000", "initial deposit of mine")
 	cmd.Flags().String(optionNameMineContractAddress, "", "mine contract address")
 }
 

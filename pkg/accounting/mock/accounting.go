@@ -11,8 +11,8 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ethersphere/bee/pkg/accounting"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/accounting"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // Service is the mock Accounting service.

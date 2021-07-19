@@ -1,32 +1,26 @@
-# Swarm Bee
+# Sana
 
-[![Go](https://github.com/ethersphere/bee/workflows/Go/badge.svg)](https://github.com/ethersphere/bee/actions)
-[![Go Reference](https://pkg.go.dev/badge/github.com/ethersphere/bee.svg)](https://pkg.go.dev/github.com/ethersphere/bee)
-[![Coverage Status](https://coveralls.io/repos/github/ethersphere/bee/badge.svg)](https://coveralls.io/github/ethersphere/bee)
-[![API OpenAPI Specs](https://img.shields.io/badge/openapi-api-blue)](https://docs.ethswarm.org/api/)
-[![Debug API OpenAPI Specs](https://img.shields.io/badge/openapi-debugapi-lightblue)](https://docs.ethswarm.org/debug-api/)
-
+[![Go Reference](https://pkg.go.dev/badge/github.com/ethsana/sana.svg)](https://pkg.go.dev/github.com/ethsana/sana)
+[![API OpenAPI Specs](https://img.shields.io/badge/openapi-api-blue)](https://docs.ethsana.org/api/)
+[![Debug API OpenAPI Specs](https://img.shields.io/badge/openapi-debugapi-lightblue)](https://docs.ethsana.org/debug-api/)
 
 ## DISCLAIMER
 This software is provided to you "as is", use at your own risk and without warranties of any kind.
-It is your responsibility to read and understand how Swarm works and the implications of running this software.
-The usage of Bee involves various risks, including, but not limited to:
+It is your responsibility to read and understand how Sana works and the implications of running this software.
+The usage of Ant involves various risks, including, but not limited to:
 damage to hardware or loss of funds associated with the Ethereum account connected to your node.
 No developers or entity involved will be liable for any claims and damages associated with your use,
 inability to use, or your interaction with other nodes or the software.
 
-Our documentation is hosted at https://docs.ethswarm.org.
+Our documentation is hosted at https://docs.ethsana.org.
 
-## Contributing
-
-Please read the [coding guidelines](CODING.md).
 
 ## Installing
 
-[Install instructions](https://docs.ethswarm.org/docs/installation/quick-start)
+[Install instructions](https://docs.ethsana.org/docs/installation/quick-start)
 
 ## Get in touch
-[Only official website](https://www.ethswarm.org)
+[Only official website](https://www.ethsana.org)
 
 
 ## License

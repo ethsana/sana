@@ -14,11 +14,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/jsonhttp"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/pss"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/jsonhttp"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/pss"
+	"github.com/ethsana/sana/pkg/swarm"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )

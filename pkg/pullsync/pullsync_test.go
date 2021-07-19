@@ -11,14 +11,14 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/p2p"
-	"github.com/ethersphere/bee/pkg/p2p/streamtest"
-	postagetesting "github.com/ethersphere/bee/pkg/postage/testing"
-	"github.com/ethersphere/bee/pkg/pullsync"
-	"github.com/ethersphere/bee/pkg/pullsync/pullstorage/mock"
-	testingc "github.com/ethersphere/bee/pkg/storage/testing"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/p2p"
+	"github.com/ethsana/sana/pkg/p2p/streamtest"
+	postagetesting "github.com/ethsana/sana/pkg/postage/testing"
+	"github.com/ethsana/sana/pkg/pullsync"
+	"github.com/ethsana/sana/pkg/pullsync/pullstorage/mock"
+	testingc "github.com/ethsana/sana/pkg/storage/testing"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 var (

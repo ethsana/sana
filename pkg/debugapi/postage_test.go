@@ -13,16 +13,16 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/bigint"
-	"github.com/ethersphere/bee/pkg/debugapi"
-	"github.com/ethersphere/bee/pkg/jsonhttp"
-	"github.com/ethersphere/bee/pkg/jsonhttp/jsonhttptest"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/postage/batchstore/mock"
-	mockpost "github.com/ethersphere/bee/pkg/postage/mock"
-	"github.com/ethersphere/bee/pkg/postage/postagecontract"
-	contractMock "github.com/ethersphere/bee/pkg/postage/postagecontract/mock"
-	"github.com/ethersphere/bee/pkg/sctx"
+	"github.com/ethsana/sana/pkg/bigint"
+	"github.com/ethsana/sana/pkg/debugapi"
+	"github.com/ethsana/sana/pkg/jsonhttp"
+	"github.com/ethsana/sana/pkg/jsonhttp/jsonhttptest"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/postage/batchstore/mock"
+	mockpost "github.com/ethsana/sana/pkg/postage/mock"
+	"github.com/ethsana/sana/pkg/postage/postagecontract"
+	contractMock "github.com/ethsana/sana/pkg/postage/postagecontract/mock"
+	"github.com/ethsana/sana/pkg/sctx"
 )
 
 func TestPostageCreateStamp(t *testing.T) {

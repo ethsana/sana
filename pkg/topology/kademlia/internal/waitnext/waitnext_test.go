@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm/test"
-	"github.com/ethersphere/bee/pkg/topology/kademlia/internal/waitnext"
+	"github.com/ethsana/sana/pkg/swarm/test"
+	"github.com/ethsana/sana/pkg/topology/kademlia/internal/waitnext"
 )
 
 func TestSet(t *testing.T) {

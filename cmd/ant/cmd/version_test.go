@@ -8,8 +8,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ethersphere/bee"
-	"github.com/ethersphere/bee/cmd/bee/cmd"
+	"github.com/ethsana/sana"
+	"github.com/ethsana/sana/cmd/ant/cmd"
 )
 
 func TestVersionCmd(t *testing.T) {

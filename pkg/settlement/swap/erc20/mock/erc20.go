@@ -10,12 +10,15 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethersphere/bee/pkg/settlement/swap/erc20"
+	"github.com/ethsana/sana/pkg/settlement/swap/erc20"
 )
 
 type Service struct {
-	balanceOfFunc func(ctx context.Context, address common.Address) (*big.Int, error)
-	transferFunc  func(ctx context.Context, address common.Address, value *big.Int) (common.Hash, error)
+	balanceOfFunc      func(ctx context.Context, address common.Address) (*big.Int, error)
+	transferFunc       func(ctx context.Context, address common.Address, value *big.Int) (common.Hash, error)
+	appproveFunc       func(ctx context.Context, spender common.Address, value *big.Int) (common.Hash, error)
+	waitForApproveFunc func(ctx context.Context, hash common.Hash) error
+	allowanceFunc      func(ctx context.Context, owner, spender common.Address) (*big.Int, error)
 }
 
 func WithBalanceOfFunc(f func(ctx context.Context, address common.Address) (*big.Int, error)) Option {
@@ -50,6 +53,27 @@ func (s *Service) Transfer(ctx context.Context, address common.Address, value *b
 		return s.transferFunc(ctx, address, value)
 	}
 	return common.Hash{}, errors.New("Error")
+}
+
+func (s *Service) Approve(ctx context.Context, spender common.Address, value *big.Int) (common.Hash, error) {
+	if s.transferFunc != nil {
+		return s.appproveFunc(ctx, spender, value)
+	}
+	return common.Hash{}, errors.New("Error")
+}
+
+func (s *Service) WaitForApprove(ctx context.Context, hash common.Hash) error {
+	if s.transferFunc != nil {
+		return s.waitForApproveFunc(ctx, hash)
+	}
+	return errors.New("Error")
+}
+
+func (s *Service) Allowance(ctx context.Context, owner, spender common.Address) (*big.Int, error) {
+	if s.transferFunc != nil {
+		return s.allowanceFunc(ctx, owner, spender)
+	}
+	return nil, errors.New("Error")
 }
 
 // Option is the option passed to the mock Chequebook service

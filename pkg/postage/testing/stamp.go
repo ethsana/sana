@@ -8,7 +8,7 @@ import (
 	crand "crypto/rand"
 	"io"
 
-	"github.com/ethersphere/bee/pkg/postage"
+	"github.com/ethsana/sana/pkg/postage"
 )
 
 const signatureSize = 65

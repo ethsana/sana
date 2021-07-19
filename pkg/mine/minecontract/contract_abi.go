@@ -1,6 +1,6 @@
-package minercontract
+package minecontract
 
-const minerAbi = `[
+const MineABI = `[
   {
     "inputs": [
       {
@@ -204,6 +204,25 @@ const minerAbi = `[
         "internalType": "bytes32",
         "name": "node",
         "type": "bytes32"
+      }
+    ],
+    "name": "expireOf",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "node",
+        "type": "bytes32"
       },
       {
         "internalType": "uint256",
@@ -332,6 +351,11 @@ const minerAbi = `[
       {
         "internalType": "uint256",
         "name": "reward",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "withdraw",
         "type": "uint256"
       },
       {

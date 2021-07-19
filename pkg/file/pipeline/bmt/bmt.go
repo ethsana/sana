@@ -7,9 +7,9 @@ package bmt
 import (
 	"errors"
 
-	"github.com/ethersphere/bee/pkg/bmtpool"
-	"github.com/ethersphere/bee/pkg/file/pipeline"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/bmtpool"
+	"github.com/ethsana/sana/pkg/file/pipeline"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 var (

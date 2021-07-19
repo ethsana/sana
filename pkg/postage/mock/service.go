@@ -8,7 +8,7 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ethersphere/bee/pkg/postage"
+	"github.com/ethsana/sana/pkg/postage"
 )
 
 type optionFunc func(*mockPostage)

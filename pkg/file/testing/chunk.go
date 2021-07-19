@@ -8,7 +8,7 @@ import (
 	"encoding/binary"
 	"math/rand"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // GenerateTestRandomFileChunk generates one single chunk with arbitrary content and address

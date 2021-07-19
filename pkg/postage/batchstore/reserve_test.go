@@ -14,13 +14,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/postage/batchstore"
-	postagetest "github.com/ethersphere/bee/pkg/postage/testing"
-	"github.com/ethersphere/bee/pkg/statestore/leveldb"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/postage/batchstore"
+	postagetest "github.com/ethsana/sana/pkg/postage/testing"
+	"github.com/ethsana/sana/pkg/statestore/leveldb"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 func setupBatchStore(t *testing.T) (postage.Storer, map[string]uint8) {

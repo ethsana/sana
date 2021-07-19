@@ -23,7 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/logging"
+	"github.com/ethsana/sana/pkg/logging"
 )
 
 func TestOneMigration(t *testing.T) {

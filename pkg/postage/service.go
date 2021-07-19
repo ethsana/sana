@@ -11,7 +11,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/ethersphere/bee/pkg/storage"
+	"github.com/ethsana/sana/pkg/storage"
 )
 
 const (

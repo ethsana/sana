@@ -11,11 +11,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ethersphere/bee/pkg/cac"
-	"github.com/ethersphere/bee/pkg/jsonhttp"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/soc"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/cac"
+	"github.com/ethsana/sana/pkg/jsonhttp"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/soc"
+	"github.com/ethsana/sana/pkg/swarm"
 	"github.com/gorilla/mux"
 )
 

@@ -16,11 +16,11 @@ import (
 	"io"
 
 	"github.com/btcsuite/btcd/btcec"
-	"github.com/ethersphere/bee/pkg/bmtpool"
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/encryption"
-	"github.com/ethersphere/bee/pkg/encryption/elgamal"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/bmtpool"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/encryption"
+	"github.com/ethsana/sana/pkg/encryption/elgamal"
+	"github.com/ethsana/sana/pkg/swarm"
 	"golang.org/x/sync/errgroup"
 )
 

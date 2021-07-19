@@ -8,7 +8,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/p2p"
+	"github.com/ethsana/sana/pkg/p2p"
 )
 
 func (s *Service) SetTimeNow(f func() time.Time) {

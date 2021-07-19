@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/manifest/mantaray"
+	"github.com/ethsana/sana/pkg/manifest/mantaray"
 )
 
 func TestPersistIdempotence(t *testing.T) {

@@ -16,14 +16,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/encryption/store"
-	"github.com/ethersphere/bee/pkg/file/joiner"
-	"github.com/ethersphere/bee/pkg/file/pipeline/builder"
-	"github.com/ethersphere/bee/pkg/file/splitter"
-	filetest "github.com/ethersphere/bee/pkg/file/testing"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/storage/mock"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/encryption/store"
+	"github.com/ethsana/sana/pkg/file/joiner"
+	"github.com/ethsana/sana/pkg/file/pipeline/builder"
+	"github.com/ethsana/sana/pkg/file/splitter"
+	filetest "github.com/ethsana/sana/pkg/file/testing"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/storage/mock"
+	"github.com/ethsana/sana/pkg/swarm"
 	"gitlab.com/nolash/go-mockbytes"
 )
 

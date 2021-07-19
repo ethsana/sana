@@ -5,8 +5,6 @@
 package cmd
 
 import (
-	"github.com/ethersphere/bee"
-
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +13,7 @@ func (c *command) initVersionCmd() {
 		Use:   "version",
 		Short: "Print version number",
 		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Println(bee.Version)
+			cmd.Println(sana.Version)
 		},
 	}
 	v.SetOut(c.root.OutOrStdout())

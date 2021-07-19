@@ -9,7 +9,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/p2p"
+	"github.com/ethsana/sana/pkg/p2p"
 	"github.com/libp2p/go-libp2p-core/network"
 )
 

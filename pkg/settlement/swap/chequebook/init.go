@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/settlement/swap/erc20"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/transaction"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/settlement/swap/erc20"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/transaction"
 )
 
 const (
@@ -72,9 +72,9 @@ func checkBalance(
 			} else {
 				logger.Warningf("cannot continue until there is at least %d SANA available on %x", neededERC20, overlayEthAddress)
 			}
-			if chainId == 5 {
-				logger.Warningf("learn how to fund your node by visiting our docs at https://docs.ethsana.org/docs/installation/fund-your-node")
-			}
+			// if chainId == 5 {
+			// 	logger.Warningf("learn how to fund your node by visiting our docs at https://docs.ethsana.org/docs/installation/fund-your-node")
+			// }
 			select {
 			case <-time.After(balanceCheckBackoffDuration):
 			case <-timeoutCtx.Done():

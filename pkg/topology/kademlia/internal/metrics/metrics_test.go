@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/shed"
-	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/bee/pkg/topology/kademlia/internal/metrics"
+	"github.com/ethsana/sana/pkg/shed"
+	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/topology/kademlia/internal/metrics"
 	"github.com/google/go-cmp/cmp"
 )
 

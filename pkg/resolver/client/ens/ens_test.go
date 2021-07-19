@@ -13,8 +13,8 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	goens "github.com/wealdtech/go-ens/v3"
 
-	"github.com/ethersphere/bee/pkg/resolver/client/ens"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/resolver/client/ens"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 func TestNewENSClient(t *testing.T) {

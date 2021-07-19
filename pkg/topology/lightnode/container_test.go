@@ -9,11 +9,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/p2p"
-	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/bee/pkg/swarm/test"
-	"github.com/ethersphere/bee/pkg/topology"
-	"github.com/ethersphere/bee/pkg/topology/lightnode"
+	"github.com/ethsana/sana/pkg/p2p"
+	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm/test"
+	"github.com/ethsana/sana/pkg/topology"
+	"github.com/ethsana/sana/pkg/topology/lightnode"
 )
 
 func TestContainer(t *testing.T) {

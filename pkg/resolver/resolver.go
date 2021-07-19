@@ -7,7 +7,7 @@ package resolver
 import (
 	"io"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // Address is the swarm bzz address.

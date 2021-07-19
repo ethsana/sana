@@ -9,7 +9,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 type Reader interface {

@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/file/splitter/internal"
-	test "github.com/ethersphere/bee/pkg/file/testing"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/storage/mock"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/file/splitter/internal"
+	test "github.com/ethsana/sana/pkg/file/testing"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/storage/mock"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 var (

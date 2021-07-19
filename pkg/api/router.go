@@ -14,9 +14,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"resenje.org/web"
 
-	"github.com/ethersphere/bee/pkg/jsonhttp"
-	"github.com/ethersphere/bee/pkg/logging/httpaccess"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/jsonhttp"
+	"github.com/ethsana/sana/pkg/logging/httpaccess"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 func (s *server) setupRouting() {
@@ -36,7 +36,7 @@ func (s *server) setupRouting() {
 	router.NotFoundHandler = http.HandlerFunc(jsonhttp.NotFoundHandler)
 
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Ethereum Swarm Bee")
+		fmt.Fprintln(w, "Ethereum Sana")
 	})
 
 	router.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {

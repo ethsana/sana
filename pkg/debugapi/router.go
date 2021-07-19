@@ -15,8 +15,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"resenje.org/web"
 
-	"github.com/ethersphere/bee/pkg/jsonhttp"
-	"github.com/ethersphere/bee/pkg/logging/httpaccess"
+	"github.com/ethsana/sana/pkg/jsonhttp"
+	"github.com/ethsana/sana/pkg/logging/httpaccess"
 )
 
 // newBasicRouter constructs only the routes that do not depend on the injected dependencies:
@@ -182,15 +182,17 @@ func (s *Service) newRouter() *mux.Router {
 		})
 	}
 
-	if s.minerEnabled {
-		router.Handle("/miner/withdraw", jsonhttp.MethodHandler{
-			"POST": http.HandlerFunc(s.minerWithdrawHandler),
-		})
+	router.Handle("/mine/withdraw", jsonhttp.MethodHandler{
+		"POST": http.HandlerFunc(s.mineWithdrawHandler),
+	})
 
-		router.Handle("/miner/pending", jsonhttp.MethodHandler{
-			"GET": http.HandlerFunc(s.minerPendingHandler),
-		})
-	}
+	router.Handle("/mine/status", jsonhttp.MethodHandler{
+		"GET": http.HandlerFunc(s.mineStatusHandler),
+	})
+
+	router.Handle(`/mine/cashdeposit`, jsonhttp.MethodHandler{
+		"POST": http.HandlerFunc(s.mineCashDepositHandler),
+	})
 
 	router.Handle("/tags/{id}", jsonhttp.MethodHandler{
 		"GET": http.HandlerFunc(s.getTagHandler),

@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/postage"
+	"github.com/ethsana/sana/pkg/postage"
 )
 
 // TestStampIssuerMarshalling tests the idempotence  of binary marshal/unmarshal.

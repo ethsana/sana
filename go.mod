@@ -1,4 +1,4 @@
-module github.com/ethersphere/bee
+module github.com/ethsana/sana
 
 go 1.15
 

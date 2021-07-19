@@ -4,17 +4,22 @@
 
 syntax = "proto3";
 
-package rollcall;
+package trust;
 
 option go_package = "pb";
 
 
-message RollCall {
-  bytes Address = 1;
-  bytes Data = 2;
+message TrustSign {
+  int32 id = 1;
+  int32 op = 2;
+  bytes Peer = 3;
+  bytes data = 4;
+  int64 expire = 5;
+  bool result = 6;
 }
 
-message Certificate {
-  bytes Address = 1;
-  bytes Data = 2;
+
+message Trust {
+  int64 expire = 1;
+  bytes stream = 2;
 }
