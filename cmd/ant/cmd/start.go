@@ -112,7 +112,7 @@ func (c *command) initStartCmd() (err error) {
 				return err
 			}
 
-			logger.Infof("version: %v", bee.Version)
+			logger.Infof("version: %v", sana.Version)
 
 			bootNode := c.config.GetBool(optionNameBootnodeMode)
 			fullNode := c.config.GetBool(optionNameFullNode)

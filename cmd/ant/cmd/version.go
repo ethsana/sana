@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"github.com/ethsana/sana"
 	"github.com/spf13/cobra"
 )
 

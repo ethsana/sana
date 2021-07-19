@@ -230,7 +230,7 @@ func (s *service) Deposit(ctx context.Context, node common.Hash) (common.Hash, e
 		To:          &s.address,
 		Data:        callData,
 		GasPrice:    sctx.GetGasPrice(ctx),
-		GasLimit:    200000,
+		GasLimit:    300000,
 		Value:       big.NewInt(0),
 		Description: "deposit",
 	}

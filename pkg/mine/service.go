@@ -398,7 +398,14 @@ func (s *service) Deposit(
 	} else {
 		s.logger.Infof("waiting for mine deposit in transaction %x", txHash)
 	}
-	return s.contract.WaitForDeposit(ctx, txHash)
+	err = s.contract.WaitForDeposit(ctx, txHash)
+	if err != nil {
+		err = store.Delete(mineDepositKey)
+		if err != nil {
+			return err
+		}
+	}
+	return err
 }
 
 func (s *service) SetTrust(trust Trust) {
