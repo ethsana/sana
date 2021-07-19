@@ -11,9 +11,9 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/p2p"
-	"github.com/ethersphere/bee/pkg/tracing"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/p2p"
+	"github.com/ethsana/sana/pkg/tracing"
 	"github.com/uber/jaeger-client-go"
 )
 

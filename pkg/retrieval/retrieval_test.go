@@ -15,20 +15,20 @@ import (
 	"testing"
 	"time"
 
-	accountingmock "github.com/ethersphere/bee/pkg/accounting/mock"
+	accountingmock "github.com/ethsana/sana/pkg/accounting/mock"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/p2p"
-	"github.com/ethersphere/bee/pkg/p2p/protobuf"
-	"github.com/ethersphere/bee/pkg/p2p/streamtest"
-	pricermock "github.com/ethersphere/bee/pkg/pricer/mock"
-	"github.com/ethersphere/bee/pkg/retrieval"
-	pb "github.com/ethersphere/bee/pkg/retrieval/pb"
-	"github.com/ethersphere/bee/pkg/storage"
-	storemock "github.com/ethersphere/bee/pkg/storage/mock"
-	testingc "github.com/ethersphere/bee/pkg/storage/testing"
-	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/bee/pkg/topology"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/p2p"
+	"github.com/ethsana/sana/pkg/p2p/protobuf"
+	"github.com/ethsana/sana/pkg/p2p/streamtest"
+	pricermock "github.com/ethsana/sana/pkg/pricer/mock"
+	"github.com/ethsana/sana/pkg/retrieval"
+	pb "github.com/ethsana/sana/pkg/retrieval/pb"
+	"github.com/ethsana/sana/pkg/storage"
+	storemock "github.com/ethsana/sana/pkg/storage/mock"
+	testingc "github.com/ethsana/sana/pkg/storage/testing"
+	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/topology"
 )
 
 var (

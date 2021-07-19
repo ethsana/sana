@@ -7,11 +7,11 @@ package epochs_test
 import (
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/feeds"
-	"github.com/ethersphere/bee/pkg/feeds/epochs"
-	feedstesting "github.com/ethersphere/bee/pkg/feeds/testing"
-	"github.com/ethersphere/bee/pkg/storage"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/feeds"
+	"github.com/ethsana/sana/pkg/feeds/epochs"
+	feedstesting "github.com/ethsana/sana/pkg/feeds/testing"
+	"github.com/ethsana/sana/pkg/storage"
 )
 
 func TestFinder(t *testing.T) {

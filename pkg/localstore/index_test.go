@@ -22,9 +22,9 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/shed"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/shed"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // TestDB_pullIndex validates the ordering of keys in pull index.

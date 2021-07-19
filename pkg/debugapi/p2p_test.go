@@ -11,12 +11,12 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/debugapi"
-	"github.com/ethersphere/bee/pkg/jsonhttp"
-	"github.com/ethersphere/bee/pkg/jsonhttp/jsonhttptest"
-	"github.com/ethersphere/bee/pkg/p2p/mock"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/debugapi"
+	"github.com/ethsana/sana/pkg/jsonhttp"
+	"github.com/ethsana/sana/pkg/jsonhttp/jsonhttptest"
+	"github.com/ethsana/sana/pkg/p2p/mock"
+	"github.com/ethsana/sana/pkg/swarm"
 	"github.com/multiformats/go-multiaddr"
 )
 

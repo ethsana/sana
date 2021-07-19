@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/manifest/simple"
+	"github.com/ethsana/sana/pkg/manifest/simple"
 )
 
 func TestWalkEntry(t *testing.T) {

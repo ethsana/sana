@@ -10,13 +10,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ethersphere/bee/cmd/bee/cmd"
+	"github.com/ethsana/sana/cmd/ant/cmd"
 )
 
 var homeDir string
 
 func TestMain(m *testing.M) {
-	dir, err := ioutil.TempDir("", "bee-cmd-")
+	dir, err := ioutil.TempDir("", "sana-cmd-")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

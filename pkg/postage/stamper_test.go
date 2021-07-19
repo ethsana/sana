@@ -11,9 +11,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // TestStamperStamping tests if the stamp created by the stamper is valid.

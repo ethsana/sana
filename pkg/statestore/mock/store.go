@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethersphere/bee/pkg/storage"
+	"github.com/ethsana/sana/pkg/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 

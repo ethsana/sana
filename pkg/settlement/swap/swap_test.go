@@ -13,15 +13,15 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/settlement/swap"
-	"github.com/ethersphere/bee/pkg/settlement/swap/chequebook"
-	mockchequebook "github.com/ethersphere/bee/pkg/settlement/swap/chequebook/mock"
-	mockchequestore "github.com/ethersphere/bee/pkg/settlement/swap/chequestore/mock"
-	"github.com/ethersphere/bee/pkg/settlement/swap/swapprotocol"
-	mockstore "github.com/ethersphere/bee/pkg/statestore/mock"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/settlement/swap"
+	"github.com/ethsana/sana/pkg/settlement/swap/chequebook"
+	mockchequebook "github.com/ethsana/sana/pkg/settlement/swap/chequebook/mock"
+	mockchequestore "github.com/ethsana/sana/pkg/settlement/swap/chequestore/mock"
+	"github.com/ethsana/sana/pkg/settlement/swap/swapprotocol"
+	mockstore "github.com/ethsana/sana/pkg/statestore/mock"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 type swapProtocolMock struct {

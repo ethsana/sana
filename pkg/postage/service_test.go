@@ -11,10 +11,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/postage"
-	pstoremock "github.com/ethersphere/bee/pkg/postage/batchstore/mock"
-	postagetesting "github.com/ethersphere/bee/pkg/postage/testing"
-	storemock "github.com/ethersphere/bee/pkg/statestore/mock"
+	"github.com/ethsana/sana/pkg/postage"
+	pstoremock "github.com/ethsana/sana/pkg/postage/batchstore/mock"
+	postagetesting "github.com/ethsana/sana/pkg/postage/testing"
+	storemock "github.com/ethsana/sana/pkg/statestore/mock"
 )
 
 // TestSaveLoad tests the idempotence of saving and loading the postage.Service

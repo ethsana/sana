@@ -3,7 +3,7 @@ package accounting
 import (
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 func (s *Accounting) SetTimeNow(f func() time.Time) {

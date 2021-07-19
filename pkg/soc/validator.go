@@ -5,7 +5,7 @@
 package soc
 
 import (
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // Valid checks if the chunk is a valid single-owner chunk.

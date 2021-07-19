@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/keystore"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/keystore"
 )
 
 var _ keystore.Service = (*Service)(nil)

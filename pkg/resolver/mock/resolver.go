@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ethersphere/bee/pkg/resolver"
+	"github.com/ethsana/sana/pkg/resolver"
 )
 
 // Assure mock Resolver implements the Resolver interface.

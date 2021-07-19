@@ -12,9 +12,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/storage"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/storage"
 )
 
 const (

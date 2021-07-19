@@ -18,11 +18,12 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/mine"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/transaction"
 	"github.com/ethersphere/go-storage-incentives-abi/postageabi"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/mine"
+	"github.com/ethsana/sana/pkg/mine/minecontract"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/transaction"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -44,7 +45,7 @@ var (
 )
 
 var (
-	minerABI = parseABI(_MinerAbi)
+	minerABI = parseABI(minecontract.MineABI)
 
 	minerTopic = minerABI.Events[`Miner`].ID
 
@@ -138,10 +139,13 @@ func (l *listener) processMinerEvent(e types.Log, updater mine.EventUpdater) err
 			return err
 		}
 		l.metrics.MinerCounter.Inc()
+
 		return updater.Miner(
 			c.Node[:],
-			c.Chequebook.Bytes(),
+			c.Deposit,
+			c.Active,
 			e.TxHash.Bytes(),
+			e.BlockNumber,
 		)
 
 	case trustTopic:
@@ -426,8 +430,9 @@ type priceUpdateEvent struct {
 }
 
 type minerEvent struct {
-	Node       [32]byte
-	Chequebook common.Address
+	Node    [32]byte
+	Deposit bool
+	Active  bool
 }
 
 type trustEvent struct {

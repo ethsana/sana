@@ -8,7 +8,7 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/ethersphere/bee/pkg/postage/postagecontract"
+	"github.com/ethsana/sana/pkg/postage/postagecontract"
 )
 
 type contractMock struct {

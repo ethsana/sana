@@ -10,10 +10,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/ethersphere/bee/pkg/settlement/swap"
-	"github.com/ethersphere/bee/pkg/settlement/swap/chequebook"
-	"github.com/ethersphere/bee/pkg/settlement/swap/swapprotocol"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/settlement/swap"
+	"github.com/ethsana/sana/pkg/settlement/swap/chequebook"
+	"github.com/ethsana/sana/pkg/settlement/swap/swapprotocol"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 type Service struct {

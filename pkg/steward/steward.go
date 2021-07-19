@@ -11,11 +11,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ethersphere/bee/pkg/pushsync"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/bee/pkg/topology"
-	"github.com/ethersphere/bee/pkg/traversal"
+	"github.com/ethsana/sana/pkg/pushsync"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/topology"
+	"github.com/ethsana/sana/pkg/traversal"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -18,17 +18,17 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethersphere/bee/pkg/file"
-	"github.com/ethersphere/bee/pkg/file/loadsave"
-	"github.com/ethersphere/bee/pkg/jsonhttp"
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/manifest"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/sctx"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/bee/pkg/tags"
-	"github.com/ethersphere/bee/pkg/tracing"
+	"github.com/ethsana/sana/pkg/file"
+	"github.com/ethsana/sana/pkg/file/loadsave"
+	"github.com/ethsana/sana/pkg/jsonhttp"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/manifest"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/sctx"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/tags"
+	"github.com/ethsana/sana/pkg/tracing"
 )
 
 // dirUploadHandler uploads a directory supplied as a tar in an HTTP request

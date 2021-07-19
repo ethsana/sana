@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm"
 	"github.com/vmihailenco/msgpack/v5"
 )
 

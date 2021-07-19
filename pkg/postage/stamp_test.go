@@ -9,11 +9,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/postage/batchstore/mock"
-	postagetesting "github.com/ethersphere/bee/pkg/postage/testing"
-	chunktesting "github.com/ethersphere/bee/pkg/storage/testing"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/postage/batchstore/mock"
+	postagetesting "github.com/ethsana/sana/pkg/postage/testing"
+	chunktesting "github.com/ethsana/sana/pkg/storage/testing"
 )
 
 // TestStampMarshalling tests the idempotence  of binary marshal/unmarshals for Stamps.

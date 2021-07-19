@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/soc"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/soc"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // Lookup is the interface for time based feed lookup

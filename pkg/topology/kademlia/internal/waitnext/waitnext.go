@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 type next struct {

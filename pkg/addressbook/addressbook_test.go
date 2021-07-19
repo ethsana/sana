@@ -8,11 +8,11 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethersphere/bee/pkg/addressbook"
-	"github.com/ethersphere/bee/pkg/bzz"
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/statestore/mock"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/addressbook"
+	"github.com/ethsana/sana/pkg/bzz"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/statestore/mock"
+	"github.com/ethsana/sana/pkg/swarm"
 
 	ma "github.com/multiformats/go-multiaddr"
 )

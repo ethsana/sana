@@ -29,12 +29,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/shed"
-	"github.com/ethersphere/bee/pkg/storage"
-	chunktesting "github.com/ethersphere/bee/pkg/storage/testing"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/shed"
+	"github.com/ethsana/sana/pkg/storage"
+	chunktesting "github.com/ethsana/sana/pkg/storage/testing"
+	"github.com/ethsana/sana/pkg/swarm"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 

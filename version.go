@@ -1,8 +1,8 @@
-// Copyright 2020 The Swarm Authors. All rights reserved.
+// Copyright 2021 The Sana Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package bee
+package sana
 
 import (
 	"strconv"
@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	version    = "0.0.1" // manually set semantic version number
+	version    = "0.0.2" // manually set semantic version number
 	commitHash string    // automatically set git commit hash
 	commitTime string    // automatically set git commit time
 

@@ -7,7 +7,7 @@ package p2p_test
 import (
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/p2p"
+	"github.com/ethsana/sana/pkg/p2p"
 )
 
 func TestNewSwarmStreamName(t *testing.T) {

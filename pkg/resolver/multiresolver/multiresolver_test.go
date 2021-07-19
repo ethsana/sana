@@ -11,11 +11,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/resolver"
-	"github.com/ethersphere/bee/pkg/resolver/mock"
-	"github.com/ethersphere/bee/pkg/resolver/multiresolver"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/resolver"
+	"github.com/ethsana/sana/pkg/resolver/mock"
+	"github.com/ethsana/sana/pkg/resolver/multiresolver"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 type Address = swarm.Address

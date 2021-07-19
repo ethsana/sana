@@ -13,12 +13,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ethersphere/bee/pkg/file/joiner"
-	"github.com/ethersphere/bee/pkg/file/loadsave"
-	"github.com/ethersphere/bee/pkg/manifest"
-	"github.com/ethersphere/bee/pkg/manifest/mantaray"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/file/joiner"
+	"github.com/ethsana/sana/pkg/file/loadsave"
+	"github.com/ethsana/sana/pkg/manifest"
+	"github.com/ethsana/sana/pkg/manifest/mantaray"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // Traverser represents service which traverse through address dependent chunks.

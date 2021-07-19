@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // RandomAddressAt generates a random address

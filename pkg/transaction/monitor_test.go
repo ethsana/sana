@@ -12,9 +12,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/transaction"
-	"github.com/ethersphere/bee/pkg/transaction/backendsimulation"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/transaction"
+	"github.com/ethsana/sana/pkg/transaction/backendsimulation"
 )
 
 func TestMonitorWatchTransaction(t *testing.T) {

@@ -21,9 +21,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/statestore/leveldb"
-	"github.com/ethersphere/bee/pkg/statestore/mock"
-	"github.com/ethersphere/bee/pkg/storage"
+	"github.com/ethsana/sana/pkg/statestore/leveldb"
+	"github.com/ethsana/sana/pkg/statestore/mock"
+	"github.com/ethsana/sana/pkg/storage"
 )
 
 // TestInmemoryStore tests basic functionality of InmemoryStore.

@@ -7,10 +7,10 @@ package testing
 import (
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/cac"
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/soc"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/cac"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/soc"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // MockSOC defines a mocked SOC with exported fields for easy testing.

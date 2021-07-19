@@ -5,39 +5,37 @@
 package nodeservice
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"hash"
+	"sync"
+	"sync/atomic"
+	"time"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/mine"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/swarm"
-	"golang.org/x/crypto/sha3"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/mine"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 const (
-	dirtyDBKey    = "nodeservice_dirty_db"
-	checksumDBKey = "nodeservice_checksum"
+	dirtyDBKey = "nodeservice_dirty_db"
 )
 
-type nodeService struct {
+type service struct {
 	stateStore storage.StateStorer
 	storer     mine.Storer
 	logger     logging.Logger
 	listener   postage.Listener
 
-	trusts   []swarm.Address
-	checksum hash.Hash // checksum hasher
-}
+	nodes    map[common.Hash]*mine.Node
+	nodesMtx sync.RWMutex
 
-type Interface interface {
-	mine.EventUpdater
-	Start(startBlock uint64) (<-chan struct{}, error)
-
-	TrustAddress() ([]swarm.Address, error)
+	synced         uint32
+	startBlock     uint64
+	rollcallSig    []chan uint64
+	rollcallSigMtx sync.Mutex
 }
 
 // New will create a new nodeService.
@@ -46,152 +44,220 @@ func New(
 	storer mine.Storer,
 	logger logging.Logger,
 	listener postage.Listener,
-	checksumFunc func() hash.Hash,
-) (Interface, error) {
-	if checksumFunc == nil {
-		checksumFunc = sha3.New256
+	startBlock uint64,
+) (mine.NodeService, error) {
+	nodes, err := storer.Miners()
+	if err != nil {
+		return nil, err
 	}
-	var (
-		b   string
-		sum = checksumFunc()
-	)
-
-	if err := stateStore.Get(checksumDBKey, &b); err != nil {
-		if !errors.Is(err, storage.ErrNotFound) {
-			return nil, err
-		}
-	} else {
-		s, err := hex.DecodeString(b)
-		if err != nil {
-			return nil, err
-		}
-		n, err := sum.Write(s)
-		if err != nil {
-			return nil, err
-		}
-		if n != len(s) {
-			return nil, errors.New("nodestore checksum init")
-		}
+	dict := make(map[common.Hash]*mine.Node, len(nodes))
+	for _, n := range nodes {
+		dict[n.Node] = n
 	}
 
-	return &nodeService{stateStore, storer, logger, listener, nil, sum}, nil
+	s := service{
+		stateStore: stateStore,
+		storer:     storer,
+		logger:     logger,
+		listener:   listener,
+		nodes:      dict,
+		startBlock: startBlock,
+	}
+	return &s, nil
 }
 
-func (svc *nodeService) Miner(node, chequebook []byte, txHash []byte) error {
-	n := &mine.Node{
-		Node:       node,
-		Trust:      false,
-		Chequebook: chequebook,
+func (s *service) Miner(node []byte, deposit, active bool, txHash []byte, blockNumber uint64) error {
+	s.nodesMtx.Lock()
+	defer s.nodesMtx.Unlock()
+	id := common.BytesToHash(node)
+
+	n, ok := s.nodes[id]
+	if !ok {
+		n = &mine.Node{Node: id, Trust: false, Active: active, Deposit: deposit, LastBlock: blockNumber}
+		s.nodes[n.Node] = n
 	}
-	err := svc.storer.Put(n)
+	if active && n.LastBlock < blockNumber {
+		n.LastBlock = blockNumber
+	}
+	n.Active = active
+	n.Deposit = deposit
+
+	err := s.storer.Put(n)
 	if err != nil {
 		return fmt.Errorf("put: %w", err)
 	}
-	cs, err := svc.updateChecksum(txHash)
-	if err != nil {
-		return fmt.Errorf("update checksum: %w", err)
-	}
 
-	svc.logger.Debugf("node service: received node address %s, tx %x, checksum %x", hex.EncodeToString(n.Node), txHash, cs)
+	s.logger.Debugf("mine service: mine %s active: %v deposit: %v height: %v, tx %x", n.Node.String(), n.Active, n.Deposit, blockNumber, txHash)
 	return nil
 }
 
-func (svc *nodeService) Trust(node []byte, trust bool, txHash []byte) error {
-	n, err := svc.storer.Get(node)
-	if err != nil {
-		return fmt.Errorf("get: %w", err)
-	}
+func (s *service) Trust(node []byte, trust bool, txHash []byte) error {
+	s.nodesMtx.Lock()
+	defer s.nodesMtx.Unlock()
+	id := common.BytesToHash(node)
 
-	svc.trusts = append(svc.trusts, swarm.NewAddress(node))
+	n, ok := s.nodes[id]
+	if !ok {
+		return fmt.Errorf("get: not found")
+	}
 
 	n.Trust = trust
-	err = svc.storer.Put(n)
+	err := s.storer.Put(n)
 	if err != nil {
 		return fmt.Errorf("put: %w", err)
 	}
-	cs, err := svc.updateChecksum(txHash)
-	if err != nil {
-		return fmt.Errorf("update checksum: %w", err)
-	}
 
-	svc.logger.Debugf("node service: update node %s trust to %v, tx %x, checksum %x", hex.EncodeToString(n.Node), trust, txHash, cs)
+	s.logger.Debugf("mine service: mine %s trust to %v, tx %x", n.Node.String(), trust, txHash)
 	return nil
 }
 
-func (svc *nodeService) UpdateBlockNumber(blockNumber uint64) error {
-	cs := svc.storer.GetChainState()
+func (s *service) UpdateBlockNumber(blockNumber uint64) error {
+	cs := s.storer.GetChainState()
 	if blockNumber == cs.Block {
 		return nil
 	}
 
 	cs.Block = blockNumber
-	if err := svc.storer.PutChainState(cs); err != nil {
+	if err := s.storer.PutChainState(cs); err != nil {
 		return fmt.Errorf("put chain state: %w", err)
 	}
 
-	svc.logger.Debugf("node service: updated block height to %d", blockNumber)
+	if atomic.LoadUint32(&s.synced) == 1 {
+		if (blockNumber-s.startBlock)%60 == 0 {
+			s.rollcallSigMtx.Lock()
+			for _, v := range s.rollcallSig {
+				v <- blockNumber
+			}
+			s.rollcallSigMtx.Unlock()
+		}
+	}
+
+	s.logger.Debugf("mine service: updated block height to %d", blockNumber)
 	return nil
 }
-func (svc *nodeService) TransactionStart() error {
-	return svc.stateStore.Put(dirtyDBKey, true)
-}
-func (svc *nodeService) TransactionEnd() error {
-	return svc.stateStore.Delete(dirtyDBKey)
+
+func (s *service) TransactionStart() error {
+	return s.stateStore.Put(dirtyDBKey, true)
 }
 
-func (svc *nodeService) Start(startBlock uint64) (<-chan struct{}, error) {
+func (s *service) TransactionEnd() error {
+	return s.stateStore.Delete(dirtyDBKey)
+}
+
+func (s *service) Start(startBlock uint64) (<-chan struct{}, error) {
 	dirty := false
-	err := svc.stateStore.Get(dirtyDBKey, &dirty)
+	err := s.stateStore.Get(dirtyDBKey, &dirty)
 	if err != nil && !errors.Is(err, storage.ErrNotFound) {
 		return nil, err
 	}
 	if dirty {
-		svc.logger.Warning("node service: dirty shutdown detected, resetting batch store")
-		if err := svc.storer.Reset(); err != nil {
+		s.logger.Warning("mine service: dirty shutdown detected, resetting batch store")
+		if err := s.storer.Reset(); err != nil {
 			return nil, err
 		}
-		if err := svc.stateStore.Delete(dirtyDBKey); err != nil {
+		if err := s.stateStore.Delete(dirtyDBKey); err != nil {
 			return nil, err
 		}
-		svc.logger.Warning("node service: batch store reset. your node will now resync chain data")
+		s.logger.Warning("mine service: node store reset. your node will now resync chain data")
 	}
 
-	cs := svc.storer.GetChainState()
+	cs := s.storer.GetChainState()
 	if cs.Block > startBlock {
 		startBlock = cs.Block
 	}
-	return svc.listener.Listen(startBlock+1, svc), nil
+
+	syncedChan := s.listener.Listen(startBlock+1, s)
+	go func() {
+		<-syncedChan
+		<-time.After(time.Second * 2)
+		atomic.StoreUint32(&s.synced, 1)
+	}()
+	return syncedChan, nil
 }
 
-// updateChecksum updates the nodeservice checksum once an event gets
-// processed. It swaps the existing checksum which is in the hasher
-// with the new checksum and persists it in the statestore.
-func (svc *nodeService) updateChecksum(txHash []byte) ([]byte, error) {
-	n, err := svc.checksum.Write(txHash)
-	if err != nil {
-		return nil, err
+func (s *service) TrustAddress(filter func(swarm.Address) bool) ([]swarm.Address, error) {
+	s.nodesMtx.RLock()
+	defer s.nodesMtx.RUnlock()
+	addrs := make([]swarm.Address, 0, len(s.nodes))
+	for _, n := range s.nodes {
+		if n.Trust {
+			addr := swarm.NewAddress(n.Node[:])
+			if filter == nil {
+				addrs = append(addrs, addr)
+				continue
+			}
+			if filter(addr) {
+				addrs = append(addrs, addr)
+			}
+		}
 	}
-	if l := len(txHash); l != n {
-		return nil, fmt.Errorf("update checksum wrote %d bytes but want %d bytes", n, l)
-	}
-	s := svc.checksum.Sum(nil)
-	svc.checksum.Reset()
-	n, err = svc.checksum.Write(s)
-	if err != nil {
-		return nil, err
-	}
-	if l := len(s); l != n {
-		return nil, fmt.Errorf("swap checksum wrote %d bytes but want %d bytes", n, l)
-	}
-
-	b := hex.EncodeToString(s)
-
-	return s, svc.stateStore.Put(checksumDBKey, b)
+	return addrs, nil
 }
 
-func (svc *nodeService) TrustAddress() ([]swarm.Address, error) {
-	if len(svc.trusts) == 0 {
-		return nil, fmt.Errorf("no found trust node")
+func (s *service) TrustOf(node swarm.Address) bool {
+	s.nodesMtx.RLock()
+	defer s.nodesMtx.RUnlock()
+	if v, ok := s.nodes[common.BytesToHash(node.Bytes())]; ok {
+		return v.Trust
 	}
-	return svc.trusts, nil
+	return false
+}
+
+func (s *service) UpdateNodeLastBlock(node swarm.Address, blockNumber uint64) error {
+	s.nodesMtx.Lock()
+	defer s.nodesMtx.Unlock()
+	id := common.BytesToHash(node.Bytes())
+
+	n, ok := s.nodes[id]
+	if !ok {
+		return fmt.Errorf("%v not found", id.String())
+	}
+
+	n.LastBlock = blockNumber
+	err := s.storer.Put(n)
+	if err != nil {
+		return fmt.Errorf("put: %w", err)
+	}
+
+	s.logger.Debugf("mine service: mine %s lastblock %v", n.Node.String(), n.LastBlock)
+	return nil
+}
+
+func (s *service) ExpireMiners() ([]swarm.Address, error) {
+	s.nodesMtx.Lock()
+	defer s.nodesMtx.Unlock()
+
+	state := s.storer.GetChainState()
+	list := make([]swarm.Address, 0, len(s.nodes))
+	for _, n := range s.nodes {
+		if n.Active && n.LastBlock < state.Block-5 {
+			list = append(list, swarm.NewAddress(n.Node[:]))
+		}
+	}
+	return list, nil
+}
+
+func (s *service) SubscribeRollCall() (c <-chan uint64, unsubscribe func()) {
+	channel := make(chan uint64, 1)
+	var closeOnce sync.Once
+
+	s.rollcallSigMtx.Lock()
+	defer s.rollcallSigMtx.Unlock()
+
+	s.rollcallSig = append(s.rollcallSig, channel)
+
+	unsubscribe = func() {
+		s.rollcallSigMtx.Lock()
+		defer s.rollcallSigMtx.Unlock()
+
+		for i, c := range s.rollcallSig {
+			if c == channel {
+				s.rollcallSig = append(s.rollcallSig[:i], s.rollcallSig[i+1:]...)
+				break
+			}
+		}
+
+		closeOnce.Do(func() { close(channel) })
+	}
+	return channel, unsubscribe
 }

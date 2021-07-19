@@ -12,9 +12,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/jsonhttp"
-	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/bee/pkg/tags"
+	"github.com/ethsana/sana/pkg/jsonhttp"
+	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/tags"
 	"github.com/gorilla/mux"
 )
 

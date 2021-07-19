@@ -6,11 +6,12 @@ package bigint_test
 
 import (
 	"encoding/json"
-	"github.com/ethersphere/bee/pkg/bigint"
 	"math"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/ethsana/sana/pkg/bigint"
 )
 
 func TestMarshaling(t *testing.T) {

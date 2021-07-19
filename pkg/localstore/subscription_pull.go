@@ -22,10 +22,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/flipflop"
-	"github.com/ethersphere/bee/pkg/shed"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/flipflop"
+	"github.com/ethsana/sana/pkg/shed"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/swarm"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 

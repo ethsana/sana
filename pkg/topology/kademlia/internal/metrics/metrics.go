@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/shed"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/shed"
+	"github.com/ethsana/sana/pkg/swarm"
 	"github.com/hashicorp/go-multierror"
 	"github.com/syndtr/goleveldb/leveldb"
 	"go.uber.org/atomic"

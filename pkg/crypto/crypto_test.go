@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethersphere/bee/pkg/crypto"
+	"github.com/ethsana/sana/pkg/crypto"
 )
 
 func TestGenerateSecp256k1Key(t *testing.T) {

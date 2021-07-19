@@ -16,16 +16,16 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/p2p"
-	"github.com/ethersphere/bee/pkg/p2p/protobuf"
-	"github.com/ethersphere/bee/pkg/p2p/streamtest"
-	"github.com/ethersphere/bee/pkg/settlement/swap/chequebook"
-	swapmock "github.com/ethersphere/bee/pkg/settlement/swap/mock"
-	priceoraclemock "github.com/ethersphere/bee/pkg/settlement/swap/priceoracle/mock"
-	"github.com/ethersphere/bee/pkg/settlement/swap/swapprotocol"
-	"github.com/ethersphere/bee/pkg/settlement/swap/swapprotocol/pb"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/p2p"
+	"github.com/ethsana/sana/pkg/p2p/protobuf"
+	"github.com/ethsana/sana/pkg/p2p/streamtest"
+	"github.com/ethsana/sana/pkg/settlement/swap/chequebook"
+	swapmock "github.com/ethsana/sana/pkg/settlement/swap/mock"
+	priceoraclemock "github.com/ethsana/sana/pkg/settlement/swap/priceoracle/mock"
+	"github.com/ethsana/sana/pkg/settlement/swap/swapprotocol"
+	"github.com/ethsana/sana/pkg/settlement/swap/swapprotocol/pb"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 func TestEmitCheques(t *testing.T) {

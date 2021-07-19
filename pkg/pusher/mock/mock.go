@@ -5,7 +5,7 @@
 package mock
 
 import (
-	"github.com/ethersphere/bee/pkg/tags"
+	"github.com/ethsana/sana/pkg/tags"
 )
 
 type MockPusher struct {

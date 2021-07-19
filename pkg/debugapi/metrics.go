@@ -5,8 +5,8 @@
 package debugapi
 
 import (
-	"github.com/ethersphere/bee"
-	"github.com/ethersphere/bee/pkg/metrics"
+	"github.com/ethsana/sana"
+	"github.com/ethsana/sana/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

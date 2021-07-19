@@ -20,10 +20,10 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/cac"
-	postagetesting "github.com/ethersphere/bee/pkg/postage/testing"
-	"github.com/ethersphere/bee/pkg/swarm"
-	swarmtesting "github.com/ethersphere/bee/pkg/swarm/test"
+	"github.com/ethsana/sana/pkg/cac"
+	postagetesting "github.com/ethsana/sana/pkg/postage/testing"
+	"github.com/ethsana/sana/pkg/swarm"
+	swarmtesting "github.com/ethsana/sana/pkg/swarm/test"
 )
 
 var mockStamp swarm.Stamp

@@ -9,13 +9,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/postage/batchstore"
-	postagetest "github.com/ethersphere/bee/pkg/postage/testing"
-	"github.com/ethersphere/bee/pkg/statestore/leveldb"
-	"github.com/ethersphere/bee/pkg/statestore/mock"
-	"github.com/ethersphere/bee/pkg/storage"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/postage/batchstore"
+	postagetest "github.com/ethsana/sana/pkg/postage/testing"
+	"github.com/ethsana/sana/pkg/statestore/leveldb"
+	"github.com/ethsana/sana/pkg/statestore/mock"
+	"github.com/ethsana/sana/pkg/storage"
 )
 
 var noopEvictFn = func([]byte) error { return nil }

@@ -15,11 +15,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/feeds"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/storage/mock"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/feeds"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/storage/mock"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 type Timeout struct {

@@ -9,8 +9,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/keystore/file"
-	"github.com/ethersphere/bee/pkg/keystore/test"
+	"github.com/ethsana/sana/pkg/keystore/file"
+	"github.com/ethsana/sana/pkg/keystore/test"
 )
 
 func TestService(t *testing.T) {

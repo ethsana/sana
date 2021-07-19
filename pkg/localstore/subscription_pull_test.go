@@ -23,9 +23,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/shed"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/shed"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // TestDB_SubscribePull_first is a regression test for the first=false (from-1) bug

@@ -22,15 +22,17 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/external"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ethersphere/bee"
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/crypto/clef"
-	"github.com/ethersphere/bee/pkg/keystore"
-	filekeystore "github.com/ethersphere/bee/pkg/keystore/file"
-	memkeystore "github.com/ethersphere/bee/pkg/keystore/mem"
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/node"
-	"github.com/ethersphere/bee/pkg/resolver/multiresolver"
+	"github.com/ethsana/sana"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/crypto/clef"
+	"github.com/ethsana/sana/pkg/keystore"
+	filekeystore "github.com/ethsana/sana/pkg/keystore/file"
+	memkeystore "github.com/ethsana/sana/pkg/keystore/mem"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/mine/tee/sev"
+	"github.com/ethsana/sana/pkg/mine/tee/sgx"
+	"github.com/ethsana/sana/pkg/node"
+	"github.com/ethsana/sana/pkg/resolver/multiresolver"
 	"github.com/kardianos/service"
 	"github.com/spf13/cobra"
 )
@@ -95,6 +97,9 @@ func (c *command) initStartCmd() (err error) {
 
 			fmt.Println(beeASCII)
 
+			if !sev.Ok() && !sgx.Ok() {
+				fmt.Printf("\033[0;31;40m%s\033[0m\n", `The operating environment of TEE is not prepared and cannot be run on the main network.`)
+			}
 			// fmt.Printf("\n\nversion: %v - planned to be supported until %v, please follow https://ethsana.org/\n\n", bee.Version, endSupportDate())
 
 			debugAPIAddr := c.config.GetString(optionNameDebugAPIAddr)
@@ -183,6 +188,7 @@ func (c *command) initStartCmd() (err error) {
 				WarmupTime:                 c.config.GetDuration(optionWarmUpTime),
 				ChainID:                    networkConfig.chainID,
 				MineEnabled:                c.config.GetBool(optionNameMine),
+				MineContractAddress:        c.config.GetString(optionNameMineContractAddress),
 			})
 			if err != nil {
 				return err
@@ -442,12 +448,13 @@ func getConfigByNetworkID(networkID uint64, defaultBlockTime uint64) *networkCon
 		config.chainID = 3
 
 	case 5: //staging
+		config.bootNodes = []string{"/dnsaddr/testnet.ethsana.org"}
 		config.chainID = 5
 	case 10: //test
 		config.chainID = 5
 
 	case 31337:
-		config.bootNodes = []string{"/dnsaddr/testnet.ethsana.org"}
+		config.bootNodes = []string{}
 		config.chainID = 31337
 	default: //will use the value provided by the chain
 		config.chainID = -1

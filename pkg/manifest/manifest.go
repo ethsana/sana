@@ -10,8 +10,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ethersphere/bee/pkg/file"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/file"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 const DefaultManifestType = ManifestMantarayContentType

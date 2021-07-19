@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/bmt"
-	"github.com/ethersphere/bee/pkg/bmt/reference"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/bmt"
+	"github.com/ethsana/sana/pkg/bmt/reference"
+	"github.com/ethsana/sana/pkg/swarm"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -19,7 +19,7 @@ package testing
 import (
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/tags"
+	"github.com/ethsana/sana/pkg/tags"
 )
 
 // CheckTag checks the first tag in the api struct to be in a certain state

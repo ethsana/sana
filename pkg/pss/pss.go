@@ -17,10 +17,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/pushsync"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/pushsync"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 var (

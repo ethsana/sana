@@ -9,9 +9,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/statestore/leveldb"
-	"github.com/ethersphere/bee/pkg/statestore/test"
-	"github.com/ethersphere/bee/pkg/storage"
+	"github.com/ethsana/sana/pkg/statestore/leveldb"
+	"github.com/ethsana/sana/pkg/statestore/test"
+	"github.com/ethsana/sana/pkg/storage"
 )
 
 func TestPersistentStateStore(t *testing.T) {

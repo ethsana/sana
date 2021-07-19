@@ -11,11 +11,11 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/p2p"
-	"github.com/ethersphere/bee/pkg/p2p/protobuf"
-	"github.com/ethersphere/bee/pkg/pricing/pb"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/p2p"
+	"github.com/ethsana/sana/pkg/p2p/protobuf"
+	"github.com/ethsana/sana/pkg/pricing/pb"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 const (

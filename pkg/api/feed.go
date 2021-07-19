@@ -15,13 +15,13 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethersphere/bee/pkg/feeds"
-	"github.com/ethersphere/bee/pkg/file/loadsave"
-	"github.com/ethersphere/bee/pkg/jsonhttp"
-	"github.com/ethersphere/bee/pkg/manifest"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/soc"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/feeds"
+	"github.com/ethsana/sana/pkg/file/loadsave"
+	"github.com/ethsana/sana/pkg/jsonhttp"
+	"github.com/ethsana/sana/pkg/manifest"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/soc"
+	"github.com/ethsana/sana/pkg/swarm"
 	"github.com/gorilla/mux"
 )
 

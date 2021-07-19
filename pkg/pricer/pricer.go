@@ -5,7 +5,7 @@
 package pricer
 
 import (
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // Pricer returns pricing information for chunk hashes.

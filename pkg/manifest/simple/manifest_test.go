@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/manifest/simple"
+	"github.com/ethsana/sana/pkg/manifest/simple"
 )
 
 // randomAddress generates a random address.

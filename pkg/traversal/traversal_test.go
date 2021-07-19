@@ -14,13 +14,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/file/loadsave"
-	"github.com/ethersphere/bee/pkg/file/pipeline/builder"
-	"github.com/ethersphere/bee/pkg/manifest"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/storage/mock"
-	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/bee/pkg/traversal"
+	"github.com/ethsana/sana/pkg/file/loadsave"
+	"github.com/ethsana/sana/pkg/file/pipeline/builder"
+	"github.com/ethsana/sana/pkg/manifest"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/storage/mock"
+	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/traversal"
 )
 
 const (

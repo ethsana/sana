@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/pss"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/pss"
 )
 
 func newTargets(length, depth int) pss.Targets {

@@ -7,7 +7,7 @@ package batchstore
 import (
 	"fmt"
 
-	"github.com/ethersphere/bee/pkg/postage"
+	"github.com/ethsana/sana/pkg/postage"
 )
 
 // ChainStateKey is the statestore key for the chain state.

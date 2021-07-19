@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // Has returns true if the chunk is stored in database.

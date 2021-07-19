@@ -13,16 +13,16 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethersphere/bee/pkg/bigint"
-	"github.com/ethersphere/bee/pkg/debugapi"
-	"github.com/ethersphere/bee/pkg/jsonhttp"
-	"github.com/ethersphere/bee/pkg/jsonhttp/jsonhttptest"
-	"github.com/ethersphere/bee/pkg/sctx"
-	"github.com/ethersphere/bee/pkg/settlement/swap/chequebook"
-	"github.com/ethersphere/bee/pkg/settlement/swap/chequebook/mock"
-	swapmock "github.com/ethersphere/bee/pkg/settlement/swap/mock"
+	"github.com/ethsana/sana/pkg/bigint"
+	"github.com/ethsana/sana/pkg/debugapi"
+	"github.com/ethsana/sana/pkg/jsonhttp"
+	"github.com/ethsana/sana/pkg/jsonhttp/jsonhttptest"
+	"github.com/ethsana/sana/pkg/sctx"
+	"github.com/ethsana/sana/pkg/settlement/swap/chequebook"
+	"github.com/ethsana/sana/pkg/settlement/swap/chequebook/mock"
+	swapmock "github.com/ethsana/sana/pkg/settlement/swap/mock"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 func TestChequebookBalance(t *testing.T) {

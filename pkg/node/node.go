@@ -26,58 +26,59 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethersphere/bee/pkg/accounting"
-	"github.com/ethersphere/bee/pkg/addressbook"
-	"github.com/ethersphere/bee/pkg/api"
-	"github.com/ethersphere/bee/pkg/config"
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/debugapi"
-	"github.com/ethersphere/bee/pkg/feeds/factory"
-	"github.com/ethersphere/bee/pkg/hive"
-	"github.com/ethersphere/bee/pkg/localstore"
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/metrics"
-	"github.com/ethersphere/bee/pkg/mine"
-	"github.com/ethersphere/bee/pkg/mine/minercontract"
-	"github.com/ethersphere/bee/pkg/mine/nodeservice"
-	"github.com/ethersphere/bee/pkg/mine/nodestore"
-	"github.com/ethersphere/bee/pkg/mine/rollcall"
-	"github.com/ethersphere/bee/pkg/netstore"
-	"github.com/ethersphere/bee/pkg/p2p"
-	"github.com/ethersphere/bee/pkg/p2p/libp2p"
-	"github.com/ethersphere/bee/pkg/pingpong"
-	"github.com/ethersphere/bee/pkg/pinning"
-	"github.com/ethersphere/bee/pkg/postage"
-	"github.com/ethersphere/bee/pkg/postage/batchservice"
-	"github.com/ethersphere/bee/pkg/postage/batchstore"
-	"github.com/ethersphere/bee/pkg/postage/listener"
-	"github.com/ethersphere/bee/pkg/postage/postagecontract"
-	"github.com/ethersphere/bee/pkg/pricer"
-	"github.com/ethersphere/bee/pkg/pricing"
-	"github.com/ethersphere/bee/pkg/pss"
-	"github.com/ethersphere/bee/pkg/puller"
-	"github.com/ethersphere/bee/pkg/pullsync"
-	"github.com/ethersphere/bee/pkg/pullsync/pullstorage"
-	"github.com/ethersphere/bee/pkg/pusher"
-	"github.com/ethersphere/bee/pkg/pushsync"
-	"github.com/ethersphere/bee/pkg/recovery"
-	"github.com/ethersphere/bee/pkg/resolver/multiresolver"
-	"github.com/ethersphere/bee/pkg/retrieval"
-	"github.com/ethersphere/bee/pkg/settlement/pseudosettle"
-	"github.com/ethersphere/bee/pkg/settlement/swap"
-	"github.com/ethersphere/bee/pkg/settlement/swap/chequebook"
-	"github.com/ethersphere/bee/pkg/settlement/swap/priceoracle"
-	"github.com/ethersphere/bee/pkg/shed"
-	"github.com/ethersphere/bee/pkg/steward"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/bee/pkg/tags"
-	"github.com/ethersphere/bee/pkg/topology"
-	"github.com/ethersphere/bee/pkg/topology/kademlia"
-	"github.com/ethersphere/bee/pkg/topology/lightnode"
-	"github.com/ethersphere/bee/pkg/tracing"
-	"github.com/ethersphere/bee/pkg/transaction"
-	"github.com/ethersphere/bee/pkg/traversal"
+	"github.com/ethsana/sana/pkg/accounting"
+	"github.com/ethsana/sana/pkg/addressbook"
+	"github.com/ethsana/sana/pkg/api"
+	"github.com/ethsana/sana/pkg/config"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/debugapi"
+	"github.com/ethsana/sana/pkg/feeds/factory"
+	"github.com/ethsana/sana/pkg/hive"
+	"github.com/ethsana/sana/pkg/localstore"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/metrics"
+	"github.com/ethsana/sana/pkg/mine"
+	"github.com/ethsana/sana/pkg/mine/minecontract"
+	"github.com/ethsana/sana/pkg/mine/nodeservice"
+	"github.com/ethsana/sana/pkg/mine/nodestore"
+	"github.com/ethsana/sana/pkg/mine/trust"
+	"github.com/ethsana/sana/pkg/netstore"
+	"github.com/ethsana/sana/pkg/p2p"
+	"github.com/ethsana/sana/pkg/p2p/libp2p"
+	"github.com/ethsana/sana/pkg/pingpong"
+	"github.com/ethsana/sana/pkg/pinning"
+	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/postage/batchservice"
+	"github.com/ethsana/sana/pkg/postage/batchstore"
+	"github.com/ethsana/sana/pkg/postage/listener"
+	"github.com/ethsana/sana/pkg/postage/postagecontract"
+	"github.com/ethsana/sana/pkg/pricer"
+	"github.com/ethsana/sana/pkg/pricing"
+	"github.com/ethsana/sana/pkg/pss"
+	"github.com/ethsana/sana/pkg/puller"
+	"github.com/ethsana/sana/pkg/pullsync"
+	"github.com/ethsana/sana/pkg/pullsync/pullstorage"
+	"github.com/ethsana/sana/pkg/pusher"
+	"github.com/ethsana/sana/pkg/pushsync"
+	"github.com/ethsana/sana/pkg/recovery"
+	"github.com/ethsana/sana/pkg/resolver/multiresolver"
+	"github.com/ethsana/sana/pkg/retrieval"
+	"github.com/ethsana/sana/pkg/settlement/pseudosettle"
+	"github.com/ethsana/sana/pkg/settlement/swap"
+	"github.com/ethsana/sana/pkg/settlement/swap/chequebook"
+	"github.com/ethsana/sana/pkg/settlement/swap/erc20"
+	"github.com/ethsana/sana/pkg/settlement/swap/priceoracle"
+	"github.com/ethsana/sana/pkg/shed"
+	"github.com/ethsana/sana/pkg/steward"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/tags"
+	"github.com/ethsana/sana/pkg/topology"
+	"github.com/ethsana/sana/pkg/topology/kademlia"
+	"github.com/ethsana/sana/pkg/topology/lightnode"
+	"github.com/ethsana/sana/pkg/tracing"
+	"github.com/ethsana/sana/pkg/transaction"
+	"github.com/ethsana/sana/pkg/traversal"
 	"github.com/hashicorp/go-multierror"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/sirupsen/logrus"
@@ -112,6 +113,7 @@ type Bee struct {
 	listenerCloser           io.Closer
 	postageServiceCloser     io.Closer
 	priceOracleCloser        io.Closer
+	mineCloser               io.Closer
 	shutdownInProgress       bool
 	shutdownMutex            sync.Mutex
 }
@@ -159,6 +161,8 @@ type Options struct {
 	WarmupTime                 time.Duration
 	ChainID                    int64
 	MineEnabled                bool
+	MineInitialDeposit         string
+	MineContractAddress        string
 }
 
 const (
@@ -467,23 +471,37 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		)
 
 		if o.MineEnabled {
+			mineContractAddress := chainCfg.MinerAddress
+			if o.MineContractAddress != "" {
+				if !common.IsHexAddress(o.MineContractAddress) {
+					return nil, errors.New("malformed mine address")
+				}
+				mineContractAddress = common.HexToAddress(o.MineContractAddress)
+			}
+
 			nodeStore, err := nodestore.New(stateStore, logger)
 			if err != nil {
 				return nil, fmt.Errorf("nodestore: %w", err)
 			}
 
-			minerContract := minercontract.New(swapBackend, transactionService, chainCfg.MinerAddress)
+			mineService := minecontract.New(swapBackend, transactionService, mineContractAddress)
+			erc20Service := erc20.New(swapBackend, transactionService, erc20Address)
 
-			nodeSvc, err := nodeservice.New(stateStore, nodeStore, logger, eventListener, sha3.New256)
+			nodeSvc, err := nodeservice.New(stateStore, nodeStore, logger, eventListener, startBlock)
 			if err != nil {
 				return nil, err
 			}
 
-			mineSvc, err = mine.NewService(swarmAddress, chequebookService.Address(), minerContract, nodeSvc, signer, logger, o.DeployGasPrice)
+			mineSvc, err = mine.NewService(swarmAddress, mineService, nodeSvc, signer, logger, warmupTime)
 			if err != nil {
 				return nil, err
 			}
+			b.mineCloser = mineSvc
 
+			err = mineSvc.Deposit(stateStore, swapBackend, erc20Service, overlayEthAddress, o.DeployGasPrice)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -545,13 +563,13 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 	p2ps.SetPickyNotifier(kad)
 	batchStore.SetRadiusSetter(kad)
 	if o.MineEnabled {
-		rollcall := rollcall.New(p2ps, logger, swarmAddress)
-		if err = p2ps.AddProtocol(rollcall.Protocol()); err != nil {
+		trust := trust.New(p2ps, logger, swarmAddress)
+		if err = p2ps.AddProtocol(trust.Protocol()); err != nil {
 			return nil, fmt.Errorf("rollcall service: %w", err)
 		}
-		mineSvc.SetRollCall(rollcall)
-		rollcall.SetTopology(kad)
-		rollcall.SetCertificateObserver(mineSvc)
+		mineSvc.SetTrust(trust)
+		trust.SetTopology(kad)
+		trust.SetMineObserver(mineSvc)
 	}
 
 	if batchSvc != nil {
@@ -573,10 +591,10 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 	if o.MineEnabled && mineSvc != nil {
 		syncedChan, err := mineSvc.Start(postageSyncStart)
 		if err != nil {
-			return nil, fmt.Errorf("unable to start node service: %w", err)
+			return nil, fmt.Errorf("unable to start mine service: %w", err)
 		}
 		// wait for the postage contract listener to sync
-		logger.Info("waiting to sync miner contract data, this may take a while... more info available in Debug loglevel")
+		logger.Info("waiting to sync mine contract data, this may take a while... more info available in Debug loglevel")
 
 		// arguably this is not a very nice solution since we dont support
 		// interrupts at this stage of the application lifecycle. some changes
@@ -899,7 +917,7 @@ func (b *Bee) Shutdown(ctx context.Context) error {
 		b.recoveryHandleCleanup()
 	}
 	var wg sync.WaitGroup
-	wg.Add(5)
+	wg.Add(6)
 	go func() {
 		defer wg.Done()
 		tryClose(b.pssCloser, "pss")
@@ -915,6 +933,11 @@ func (b *Bee) Shutdown(ctx context.Context) error {
 	go func() {
 		defer wg.Done()
 		tryClose(b.accountingCloser, "accounting")
+	}()
+
+	go func() {
+		defer wg.Done()
+		tryClose(b.mineCloser, "mine")
 	}()
 
 	b.p2pCancel()

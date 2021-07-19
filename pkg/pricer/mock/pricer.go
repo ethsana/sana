@@ -5,7 +5,7 @@
 package mock
 
 import (
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 type MockPricer struct {

@@ -18,17 +18,17 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ma "github.com/multiformats/go-multiaddr"
 
-	ab "github.com/ethersphere/bee/pkg/addressbook"
-	"github.com/ethersphere/bee/pkg/bzz"
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/hive"
-	"github.com/ethersphere/bee/pkg/hive/pb"
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/p2p/protobuf"
-	"github.com/ethersphere/bee/pkg/p2p/streamtest"
-	"github.com/ethersphere/bee/pkg/statestore/mock"
-	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/bee/pkg/swarm/test"
+	ab "github.com/ethsana/sana/pkg/addressbook"
+	"github.com/ethsana/sana/pkg/bzz"
+	"github.com/ethsana/sana/pkg/crypto"
+	"github.com/ethsana/sana/pkg/hive"
+	"github.com/ethsana/sana/pkg/hive/pb"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/p2p/protobuf"
+	"github.com/ethsana/sana/pkg/p2p/streamtest"
+	"github.com/ethsana/sana/pkg/statestore/mock"
+	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/swarm/test"
 )
 
 var (

@@ -10,12 +10,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/file/pipeline"
-	mock "github.com/ethersphere/bee/pkg/file/pipeline/mock"
-	"github.com/ethersphere/bee/pkg/file/pipeline/store"
-	"github.com/ethersphere/bee/pkg/storage"
-	storer "github.com/ethersphere/bee/pkg/storage/mock"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/file/pipeline"
+	mock "github.com/ethsana/sana/pkg/file/pipeline/mock"
+	"github.com/ethsana/sana/pkg/file/pipeline/store"
+	"github.com/ethsana/sana/pkg/storage"
+	storer "github.com/ethsana/sana/pkg/storage/mock"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 // TestStoreWriter tests that store writer stores the provided data and calls the next chain writer.

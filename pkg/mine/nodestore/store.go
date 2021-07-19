@@ -5,23 +5,21 @@
 package nodestore
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/bee/pkg/mine"
-	"github.com/ethersphere/bee/pkg/storage"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethsana/sana/pkg/logging"
+	"github.com/ethsana/sana/pkg/mine"
+	"github.com/ethsana/sana/pkg/storage"
 )
 
 const (
-	nodeKeyPrefix  = "nodestore_batch_"
-	valueKeyPrefix = "nodestore_value_"
-	chainStateKey  = "nodestore_chainstate"
+	nodeKeyPrefix = "nodestore_node_"
+	chainStateKey = "nodestore_chainstate"
 )
 
-// store implements postage.Storer
 type store struct {
 	store storage.StateStorer // State store backend to persist batches.
 	cs    *mine.ChainState    // the chain state
@@ -29,8 +27,6 @@ type store struct {
 	logger logging.Logger
 }
 
-// New constructs a new postage batch store.
-// It initialises both chain state and reserve state from the persistent state store
 func New(st storage.StateStorer, logger logging.Logger) (mine.Storer, error) {
 	cs := &mine.ChainState{}
 	err := st.Get(chainStateKey, cs)
@@ -44,32 +40,45 @@ func New(st storage.StateStorer, logger logging.Logger) (mine.Storer, error) {
 	return &store{st, cs, logger}, nil
 }
 
-// Get returns a batch from the batchstore with the given ID.
-func (s *store) Get(id []byte) (*mine.Node, error) {
+func (s *store) Get(id common.Hash) (*mine.Node, error) {
 	n := &mine.Node{}
 	err := s.store.Get(nodeKey(id), n)
 	if err != nil {
-		return nil, fmt.Errorf("get node %s: %w", hex.EncodeToString(id), err)
+		return nil, fmt.Errorf("get node %s: %w", id.String(), err)
 	}
 
 	return n, nil
 }
 
-// Put stores a given batch in the batchstore and requires new values of Value and Depth
 func (s *store) Put(n *mine.Node) error {
 	return s.store.Put(nodeKey(n.Node), n)
 }
 
-// PutChainState implements BatchStorer.
-// It purges expired batches and unreserves underfunded ones before it
-// stores the chain state in the batch store.
+func (s *store) Miners() ([]*mine.Node, error) {
+	nodes := make([]*mine.Node, 0, 1024)
+	err := s.store.Iterate(nodeKeyPrefix, func(key, value []byte) (stop bool, err error) {
+		if strings.HasPrefix(string(key), nodeKeyPrefix) {
+			var node mine.Node
+			err = node.UnmarshalBinary(value)
+			if err != nil {
+				return true, err
+			}
+
+			nodes = append(nodes, &node)
+		}
+		return false, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return nodes, nil
+}
+
 func (s *store) PutChainState(cs *mine.ChainState) error {
 	s.cs = cs
 	return s.store.Put(chainStateKey, cs)
 }
 
-// GetChainState implements BatchStorer. It returns the stored chain state from
-// the batch store.
 func (s *store) GetChainState() *mine.ChainState {
 	return s.cs
 }
@@ -90,7 +99,6 @@ func (s *store) Reset() error {
 	return nil
 }
 
-// batchKey returns the index key for the batch ID used in the by-ID batch index.
-func nodeKey(id []byte) string {
-	return nodeKeyPrefix + string(id)
+func nodeKey(hash common.Hash) string {
+	return nodeKeyPrefix + string(hash[:])
 }

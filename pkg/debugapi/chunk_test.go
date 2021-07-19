@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ethersphere/bee/pkg/jsonhttp"
-	"github.com/ethersphere/bee/pkg/jsonhttp/jsonhttptest"
-	"github.com/ethersphere/bee/pkg/storage"
-	"github.com/ethersphere/bee/pkg/storage/mock"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethsana/sana/pkg/jsonhttp"
+	"github.com/ethsana/sana/pkg/jsonhttp/jsonhttptest"
+	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/storage/mock"
+	"github.com/ethsana/sana/pkg/swarm"
 )
 
 func TestHasChunkHandler(t *testing.T) {
