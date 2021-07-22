@@ -487,7 +487,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 			mineService := minecontract.New(swapBackend, transactionService, mineContractAddress)
 			erc20Service := erc20.New(swapBackend, transactionService, erc20Address)
 
-			nodeSvc, err := nodeservice.New(stateStore, nodeStore, logger, eventListener, startBlock)
+			nodeSvc, err := nodeservice.New(stateStore, nodeStore, logger, eventListener, swapBackend, startBlock)
 			if err != nil {
 				return nil, err
 			}

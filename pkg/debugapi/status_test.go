@@ -19,7 +19,7 @@ func TestHealth(t *testing.T) {
 	jsonhttptest.Request(t, testServer.Client, http.MethodGet, "/health", http.StatusOK,
 		jsonhttptest.WithExpectedJSONResponse(debugapi.StatusResponse{
 			Status:  "ok",
-			Version: bee.Version,
+			Version: sana.Version,
 		}),
 	)
 }
@@ -30,7 +30,7 @@ func TestReadiness(t *testing.T) {
 	jsonhttptest.Request(t, testServer.Client, http.MethodGet, "/readiness", http.StatusOK,
 		jsonhttptest.WithExpectedJSONResponse(debugapi.StatusResponse{
 			Status:  "ok",
-			Version: bee.Version,
+			Version: sana.Version,
 		}),
 	)
 }

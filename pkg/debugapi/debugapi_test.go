@@ -191,7 +191,7 @@ func TestServer_Configure(t *testing.T) {
 	jsonhttptest.Request(t, client, http.MethodGet, "/readiness", http.StatusOK,
 		jsonhttptest.WithExpectedJSONResponse(debugapi.StatusResponse{
 			Status:  "ok",
-			Version: bee.Version,
+			Version: sana.Version,
 		}),
 	)
 	jsonhttptest.Request(t, client, http.MethodGet, "/addresses", http.StatusOK,
@@ -211,7 +211,7 @@ func testBasicRouter(t *testing.T, client *http.Client) {
 	jsonhttptest.Request(t, client, http.MethodGet, "/health", http.StatusOK,
 		jsonhttptest.WithExpectedJSONResponse(debugapi.StatusResponse{
 			Status:  "ok",
-			Version: bee.Version,
+			Version: sana.Version,
 		}),
 	)
 

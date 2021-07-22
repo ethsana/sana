@@ -12,18 +12,21 @@ import (
 
 // Batch represents a postage batch, a payment on the blockchain.
 type Node struct {
-	Node      common.Hash // node id
-	Trust     bool        // trust node
-	Deposit   bool
-	Active    bool
-	LastBlock uint64
+	Node       common.Hash // node id
+	Trust      bool        // trust node
+	Deposit    bool
+	Active     bool
+	LastBlock  uint64
+	EthAddress common.Address
+
+	InactionTx *common.Hash // memory
 }
 
 // MarshalBinary implements BinaryMarshaller. It will attempt to serialize the
 // postage batch to a byte slice.
 // serialised as ID(32)|big endian value(32)|start block(8)|owner addr(20)|BucketDepth(1)|depth(1)|immutable(1)
 func (n *Node) MarshalBinary() ([]byte, error) {
-	out := make([]byte, 43)
+	out := make([]byte, 63)
 	copy(out, n.Node.Bytes())
 	if n.Trust {
 		out[32] = 1
@@ -35,6 +38,7 @@ func (n *Node) MarshalBinary() ([]byte, error) {
 		out[34] = 1
 	}
 	binary.BigEndian.PutUint64(out[35:], n.LastBlock)
+	copy(out[43:], n.EthAddress[:])
 	return out, nil
 }
 
@@ -46,5 +50,8 @@ func (n *Node) UnmarshalBinary(buf []byte) error {
 	n.Active = buf[33] > 0
 	n.Deposit = buf[34] > 0
 	n.LastBlock = binary.BigEndian.Uint64(buf[35:])
+	if len(buf) > 43 {
+		n.EthAddress = common.BytesToAddress(buf[43:])
+	}
 	return nil
 }

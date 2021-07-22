@@ -27,7 +27,7 @@ const (
 )
 
 type MineObserver interface {
-	NotifyTrustSignature(id, op int32, expire int64, data []byte) error
+	NotifyTrustSignature(peer swarm.Address, id, op int32, expire int64, data []byte) error
 	NotifyTrustRollCall(peer swarm.Address, op int32, expire int64, data []byte) error
 	NotifyTrustRollCallSign(op int32, expire int64, data []byte) error
 }
@@ -111,7 +111,7 @@ func (s *Service) handlerSign(ctx context.Context, p p2p.Peer, stream p2p.Stream
 			s.waitsMtx.Unlock()
 
 		} else if s.observer != nil {
-			err = s.observer.NotifyTrustSignature(req.Id, req.Op, req.Expire, req.Data)
+			err = s.observer.NotifyTrustSignature(p.Address, req.Id, req.Op, req.Expire, req.Data)
 			return err
 		}
 
@@ -120,6 +120,9 @@ func (s *Service) handlerSign(ctx context.Context, p p2p.Peer, stream p2p.Stream
 		peer, err := s.topology.ClosestPeer(target, false, p.Address)
 		if err != nil {
 			return err
+		}
+		if peer.Equal(p.Address) {
+			return p2p.ErrPeerNotFound
 		}
 
 		stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamSign)
@@ -134,7 +137,7 @@ func (s *Service) handlerSign(ctx context.Context, p p2p.Peer, stream p2p.Stream
 			}
 		}()
 
-		s.logger.Tracef("sending rollcall/sign to peer %v", peer)
+		s.logger.Tracef("sending rollcall/sign to peer %v with %v", peer, target)
 		w := protobuf.NewWriter(stream)
 		return w.WriteMsgWithContext(ctx, &req)
 	}
@@ -196,8 +199,11 @@ func (s *Service) handlerRollCallSign(ctx context.Context, p p2p.Peer, stream p2
 		if err != nil {
 			return err
 		}
+		if peer.Equal(p.Address) {
+			return p2p.ErrPeerNotFound
+		}
 
-		stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamSign)
+		stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamRollCallSign)
 		if err != nil {
 			return err
 		}
@@ -310,12 +316,8 @@ func (s *Service) TrustsSignature(ctx context.Context, op int32, expire int64, d
 	return nil, fmt.Errorf(`topology is nil`)
 }
 
-func (s *Service) PushSignatures(ctx context.Context, id, op int32, expire int64, data []byte, target swarm.Address) error {
+func (s *Service) PushSignatures(ctx context.Context, id, op int32, expire int64, data []byte, target swarm.Address, peer swarm.Address) error {
 	if s.topology != nil {
-		peer, err := s.topology.ClosestPeer(target, false)
-		if err != nil {
-			return err
-		}
 		stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamSign)
 		if err != nil {
 			return err
@@ -328,7 +330,7 @@ func (s *Service) PushSignatures(ctx context.Context, id, op int32, expire int64
 			}
 		}()
 
-		s.logger.Tracef("sending rollcall/sign to peer %v", peer)
+		s.logger.Tracef("sending rollcall/sign to peer %v", target)
 		w := protobuf.NewWriter(stream)
 		return w.WriteMsgWithContext(ctx, &pb.TrustSign{
 			Id:     id,
@@ -344,11 +346,7 @@ func (s *Service) PushSignatures(ctx context.Context, id, op int32, expire int64
 
 func (s *Service) PushTrustSign(ctx context.Context, op int32, expire int64, data []byte, target swarm.Address) error {
 	if s.topology != nil {
-		peer, err := s.topology.ClosestPeer(target, false)
-		if err != nil {
-			return err
-		}
-		stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamRollCallSign)
+		stream, err := s.streamer.NewStream(ctx, target, nil, protocolName, protocolVersion, streamRollCallSign)
 		if err != nil {
 			return err
 		}
@@ -360,7 +358,7 @@ func (s *Service) PushTrustSign(ctx context.Context, op int32, expire int64, dat
 			}
 		}()
 
-		s.logger.Tracef("sending rollcall/rollcallsign to peer %v", peer)
+		s.logger.Tracef("sending rollcall/rollcallsign to peer %v", target)
 		w := protobuf.NewWriter(stream)
 		return w.WriteMsgWithContext(ctx, &pb.Trust{
 			Expire: expire,
@@ -375,16 +373,14 @@ func (s *Service) PushRollCall(ctx context.Context, op int32, expire int64, data
 		err := s.topology.EachPeer(func(a swarm.Address, u uint8) (stop bool, jumpToNext bool, err error) {
 			for _, peer := range skips {
 				if peer.Equal(a) {
-					return false, true, nil
+					return false, false, nil
 				}
 			}
 
 			stream, err := s.streamer.NewStream(ctx, a, nil, protocolName, protocolVersion, streamRollCall)
 			if err != nil {
-				return false, true, err
-			}
-			if err != nil {
-				return false, true, err
+				s.logger.Debugf("PushRollCall NewStream failed: %s", err)
+				return false, false, nil
 			}
 			defer func() {
 				if err != nil {
@@ -395,10 +391,14 @@ func (s *Service) PushRollCall(ctx context.Context, op int32, expire int64, data
 			}()
 
 			w := protobuf.NewWriter(stream)
-			return false, true, w.WriteMsgWithContext(ctx, &pb.Trust{
+			err = w.WriteMsgWithContext(ctx, &pb.Trust{
 				Expire: expire,
 				Stream: data,
 			})
+			if err != nil {
+				s.logger.Debugf("PushRollCall write message failed: %s", err)
+			}
+			return false, false, nil
 		})
 
 		if err != nil {

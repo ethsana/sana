@@ -5,6 +5,7 @@
 package nodeservice
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -17,6 +18,7 @@ import (
 	"github.com/ethsana/sana/pkg/postage"
 	"github.com/ethsana/sana/pkg/storage"
 	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/transaction"
 )
 
 const (
@@ -28,6 +30,7 @@ type service struct {
 	storer     mine.Storer
 	logger     logging.Logger
 	listener   postage.Listener
+	backend    transaction.Backend
 
 	nodes    map[common.Hash]*mine.Node
 	nodesMtx sync.RWMutex
@@ -44,6 +47,7 @@ func New(
 	storer mine.Storer,
 	logger logging.Logger,
 	listener postage.Listener,
+	backend transaction.Backend,
 	startBlock uint64,
 ) (mine.NodeService, error) {
 	nodes, err := storer.Miners()
@@ -60,6 +64,7 @@ func New(
 		storer:     storer,
 		logger:     logger,
 		listener:   listener,
+		backend:    backend,
 		nodes:      dict,
 		startBlock: startBlock,
 	}
@@ -175,6 +180,79 @@ func (s *service) Start(startBlock uint64) (<-chan struct{}, error) {
 	return syncedChan, nil
 }
 
+func (s *service) UpdateNodeLastBlock(node swarm.Address, blockNumber uint64) error {
+	s.nodesMtx.Lock()
+	defer s.nodesMtx.Unlock()
+	id := common.BytesToHash(node.Bytes())
+
+	n, ok := s.nodes[id]
+	if !ok {
+		return fmt.Errorf("%v not found", id.String())
+	}
+
+	n.LastBlock = blockNumber
+	err := s.storer.Put(n)
+	if err != nil {
+		return fmt.Errorf("put: %w", err)
+	}
+
+	s.logger.Debugf("mine service: mine %s lastblock %v", n.Node.String(), n.LastBlock)
+	return nil
+}
+
+func (s *service) UpdateNodeInactionTxHash(node swarm.Address, hash common.Hash) {
+	s.nodesMtx.Lock()
+	defer s.nodesMtx.Unlock()
+	if v, ok := s.nodes[common.BytesToHash(node.Bytes())]; ok {
+		v.InactionTx = &hash
+	}
+}
+
+func (s *service) checkInactionTxHash(list []*mine.Node) {
+	ctx := context.Background()
+	for _, n := range list {
+		receipt, err := s.backend.TransactionReceipt(ctx, *n.InactionTx)
+		if err != nil {
+			s.logger.Infof("get inaction tx %s receipt faild: %s", n.InactionTx.String(), err)
+			continue
+		}
+		if receipt.Status == 1 {
+			n.InactionTx = nil
+		}
+	}
+
+	s.nodesMtx.Lock()
+	defer s.nodesMtx.Unlock()
+	for _, n := range list {
+		if n.InactionTx == nil {
+			if v, ok := s.nodes[n.Node]; ok {
+				v.InactionTx = nil
+			}
+		}
+	}
+	s.logger.Debugf("check inaction tx finish")
+}
+
+func (s *service) ExpireMiners() ([]swarm.Address, error) {
+	s.nodesMtx.Lock()
+	defer s.nodesMtx.Unlock()
+
+	state := s.storer.GetChainState()
+	clist := make([]*mine.Node, 0, len(s.nodes))
+	list := make([]swarm.Address, 0, len(s.nodes))
+	for _, n := range s.nodes {
+		if n.InactionTx != nil {
+			clist = append(clist, &mine.Node{Node: n.Node, InactionTx: n.InactionTx})
+		}
+		if n.Active && n.InactionTx == nil && n.LastBlock < state.Block-60 {
+			list = append(list, swarm.NewAddress(n.Node[:]))
+		}
+	}
+
+	go s.checkInactionTxHash(clist)
+	return list, nil
+}
+
 func (s *service) TrustAddress(filter func(swarm.Address) bool) ([]swarm.Address, error) {
 	s.nodesMtx.RLock()
 	defer s.nodesMtx.RUnlock()
@@ -203,38 +281,29 @@ func (s *service) TrustOf(node swarm.Address) bool {
 	return false
 }
 
-func (s *service) UpdateNodeLastBlock(node swarm.Address, blockNumber uint64) error {
-	s.nodesMtx.Lock()
-	defer s.nodesMtx.Unlock()
-	id := common.BytesToHash(node.Bytes())
-
-	n, ok := s.nodes[id]
-	if !ok {
-		return fmt.Errorf("%v not found", id.String())
-	}
-
-	n.LastBlock = blockNumber
-	err := s.storer.Put(n)
-	if err != nil {
-		return fmt.Errorf("put: %w", err)
-	}
-
-	s.logger.Debugf("mine service: mine %s lastblock %v", n.Node.String(), n.LastBlock)
-	return nil
-}
-
-func (s *service) ExpireMiners() ([]swarm.Address, error) {
+func (s *service) MineAddress(node common.Hash, contract mine.MineContract) (common.Address, error) {
 	s.nodesMtx.Lock()
 	defer s.nodesMtx.Unlock()
 
-	state := s.storer.GetChainState()
-	list := make([]swarm.Address, 0, len(s.nodes))
-	for _, n := range s.nodes {
-		if n.Active && n.LastBlock < state.Block-5 {
-			list = append(list, swarm.NewAddress(n.Node[:]))
+	zero := common.Address{}
+	ctx, cancal := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancal()
+	if v, ok := s.nodes[node]; ok {
+		if v.EthAddress == zero {
+			addr, err := contract.MinersReceived(ctx, node)
+			if err != nil {
+				return zero, err
+			}
+			v.EthAddress = addr
+
+			err = s.storer.Put(v)
+			if err != nil {
+				return zero, fmt.Errorf("put: %w", err)
+			}
 		}
+		return v.EthAddress, nil
 	}
-	return list, nil
+	return zero, nil
 }
 
 func (s *service) SubscribeRollCall() (c <-chan uint64, unsubscribe func()) {

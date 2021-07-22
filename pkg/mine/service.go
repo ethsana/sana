@@ -47,7 +47,7 @@ type Service interface {
 	Deposit(store storage.StateStorer, swapBackend transaction.Backend, erc20Service erc20.Service, overlayEthAddress common.Address, deployGasPrice string) error
 	SetTrust(rollcall Trust)
 
-	NotifyTrustSignature(id, op int32, expire int64, data []byte) error
+	NotifyTrustSignature(pper swarm.Address, id, op int32, expire int64, data []byte) error
 	NotifyTrustRollCall(peer swarm.Address, op int32, expire int64, data []byte) error
 	NotifyTrustRollCallSign(op int32, expire int64, data []byte) error
 
@@ -91,7 +91,7 @@ func NewService(
 	return s, nil
 }
 
-func (s *service) NotifyTrustSignature(id int32, op int32, expire int64, data []byte) error {
+func (s *service) NotifyTrustSignature(peer swarm.Address, id int32, op int32, expire int64, data []byte) error {
 	node := common.BytesToHash(data[:32])
 
 	addr, err := recoverSignAddress(data[32:], op, expire, node)
@@ -99,7 +99,7 @@ func (s *service) NotifyTrustSignature(id int32, op int32, expire int64, data []
 		return err
 	}
 
-	owner, err := s.contract.MinersReceived(context.Background(), node)
+	owner, err := s.nodes.MineAddress(node, s.contract)
 	if err != nil {
 		return err
 	}
@@ -109,20 +109,22 @@ func (s *service) NotifyTrustSignature(id int32, op int32, expire int64, data []
 		if err != nil {
 			return err
 		}
-		return s.trust.PushSignatures(context.Background(), id, op, expire, signature, swarm.NewAddress(node[:]))
+		return s.trust.PushSignatures(context.Background(), id, op, expire, signature, swarm.NewAddress(node.Bytes()), peer)
 	}
 	return fmt.Errorf("invalid signature")
 }
 
 func (s *service) NotifyTrustRollCall(peer swarm.Address, op int32, expire int64, data []byte) error {
-	signature, err := signLocalTrustData(s.signer, common.BytesToHash(data[:32]), expire)
-	if err != nil {
-		return err
-	}
+	if !s.nodes.TrustOf(s.base) {
+		signature, err := signLocalTrustData(s.signer, common.BytesToHash(data[:32]), expire)
+		if err != nil {
+			return err
+		}
 
-	err = s.trust.PushTrustSign(context.Background(), op, expire, append(append(append(data[:32], s.base.Bytes()...), signature...), data[32:]...), swarm.NewAddress(data[:32]))
-	if err != nil {
-		return err
+		err = s.trust.PushTrustSign(context.Background(), op, expire, append(append(append(data[:32], s.base.Bytes()...), signature...), data[32:]...), peer)
+		if err != nil {
+			return err
+		}
 	}
 	return s.trust.PushRollCall(context.Background(), op, expire, data, peer)
 }
@@ -135,7 +137,7 @@ func (s *service) NotifyTrustRollCallSign(op int32, expire int64, data []byte) e
 		return err
 	}
 
-	owner, err := s.contract.MinersReceived(context.Background(), node)
+	owner, err := s.nodes.MineAddress(node, s.contract)
 	if err != nil {
 		return err
 	}
@@ -238,14 +240,6 @@ func (s *service) checkExpireMiners() error {
 		// self	sign
 		expire := time.Now().Add(time.Minute).Unix()
 		for _, node := range miners {
-			ok, err := s.contract.IsWorking(ctx, common.BytesToHash(node.Bytes()))
-			if err != nil {
-				s.logger.Infof("check address %s working failed at %s", node.String(), err)
-			}
-			if !ok {
-				continue
-			}
-
 			signature, err := signLocalTrustData(s.signer, node, expire)
 			if err != nil {
 				s.logger.Infof("inaction address %s signature failed at %s", node.String(), err)
@@ -253,9 +247,12 @@ func (s *service) checkExpireMiners() error {
 			}
 			hash, err := s.contract.Inaction(ctx, common.BytesToHash(node.Bytes()), big.NewInt(expire), signature)
 			if err != nil {
-				s.logger.Infof("inaction address %s sendtransaction failed at %s", node.String(), err)
+				addr, err := s.nodes.MineAddress(common.BytesToHash(node.Bytes()), s.contract)
+				s.logger.Infof("inaction address %s/%s sendtransaction failed at %s", node.String(), addr, err)
 				continue
 			}
+
+			s.nodes.UpdateNodeInactionTxHash(node, hash)
 			s.logger.Infof("inaction address %s transaction %s", node.String(), hash)
 			// TODO second send transaction
 		}

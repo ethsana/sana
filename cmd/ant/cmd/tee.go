@@ -25,7 +25,7 @@ func (c *command) initTeeCmd() {
 			cmd.Println(`Platform: AMD`)
 			cmd.Print(sev.Output())
 
-			cmd.Println(`Platform: AMD`)
+			cmd.Println(`Platform: Intel`)
 			cmd.Print(sgx.Output())
 		},
 	}
