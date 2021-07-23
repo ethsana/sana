@@ -127,8 +127,6 @@ func (s *service) NotifyTrustRollCall(peer swarm.Address, expire int64, data []b
 	s.height = height
 	s.heightMtx.Unlock()
 
-	fmt.Println(`>>>>>>>>>>>>> rollcall height`, height)
-
 	if !s.nodes.TrustOf(s.base) {
 		signature, err := signLocalTrustData(s.signer, common.BytesToHash(data[:32]), expire)
 		if err != nil {
