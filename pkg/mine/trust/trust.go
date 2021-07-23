@@ -28,8 +28,8 @@ const (
 
 type MineObserver interface {
 	NotifyTrustSignature(peer swarm.Address, id, op int32, expire int64, data []byte) error
-	NotifyTrustRollCall(peer swarm.Address, op int32, expire int64, data []byte) error
-	NotifyTrustRollCallSign(op int32, expire int64, data []byte) error
+	NotifyTrustRollCall(peer swarm.Address, expire int64, data []byte) error
+	NotifyTrustRollCallSign(peer swarm.Address, expire int64, data []byte) error
 }
 
 type Service struct {
@@ -163,7 +163,7 @@ func (s *Service) handlerRollCall(ctx context.Context, p p2p.Peer, stream p2p.St
 		return fmt.Errorf("request is expire from peer %s", p.Address)
 	}
 	if s.observer != nil {
-		return s.observer.NotifyTrustRollCall(p.Address, 0, req.Expire, req.Stream)
+		return s.observer.NotifyTrustRollCall(p.Address, req.Expire, req.Stream)
 	}
 	return fmt.Errorf(`rollcall observer is nil`)
 }
@@ -191,7 +191,7 @@ func (s *Service) handlerRollCallSign(ctx context.Context, p p2p.Peer, stream p2
 	target := swarm.NewAddress(req.Stream[:32])
 	if target.Equal(s.base) {
 		if s.observer != nil {
-			return s.observer.NotifyTrustRollCallSign(0, req.Expire, req.Stream)
+			return s.observer.NotifyTrustRollCallSign(p.Address, req.Expire, req.Stream)
 		}
 		return fmt.Errorf("observer is not available")
 	} else {
@@ -344,7 +344,7 @@ func (s *Service) PushSignatures(ctx context.Context, id, op int32, expire int64
 	return nil
 }
 
-func (s *Service) PushTrustSign(ctx context.Context, op int32, expire int64, data []byte, target swarm.Address) error {
+func (s *Service) PushTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address) error {
 	if s.topology != nil {
 		stream, err := s.streamer.NewStream(ctx, target, nil, protocolName, protocolVersion, streamRollCallSign)
 		if err != nil {
@@ -368,7 +368,7 @@ func (s *Service) PushTrustSign(ctx context.Context, op int32, expire int64, dat
 	return nil
 }
 
-func (s *Service) PushRollCall(ctx context.Context, op int32, expire int64, data []byte, skips ...swarm.Address) error {
+func (s *Service) PushRollCall(ctx context.Context, expire int64, data []byte, skips ...swarm.Address) error {
 	if s.topology != nil {
 		err := s.topology.EachPeer(func(a swarm.Address, u uint8) (stop bool, jumpToNext bool, err error) {
 			for _, peer := range skips {

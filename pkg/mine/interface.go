@@ -81,6 +81,6 @@ type MineContract interface {
 type Trust interface {
 	TrustsSignature(ctx context.Context, op int32, expire int64, data []byte, peer ...swarm.Address) ([]byte, error)
 	PushSignatures(ctx context.Context, id, op int32, expire int64, data []byte, target swarm.Address, peer swarm.Address) error
-	PushTrustSign(ctx context.Context, op int32, expire int64, data []byte, target swarm.Address) error
-	PushRollCall(ctx context.Context, op int32, expire int64, data []byte, skips ...swarm.Address) error
+	PushTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address) error
+	PushRollCall(ctx context.Context, expire int64, data []byte, skips ...swarm.Address) error
 }

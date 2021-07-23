@@ -48,8 +48,8 @@ type Service interface {
 	SetTrust(rollcall Trust)
 
 	NotifyTrustSignature(pper swarm.Address, id, op int32, expire int64, data []byte) error
-	NotifyTrustRollCall(peer swarm.Address, op int32, expire int64, data []byte) error
-	NotifyTrustRollCallSign(op int32, expire int64, data []byte) error
+	NotifyTrustRollCall(peer swarm.Address, expire int64, data []byte) error
+	NotifyTrustRollCallSign(peer swarm.Address, expire int64, data []byte) error
 
 	Status(ctx context.Context) (bool, *big.Int, *big.Int, *big.Int, error)
 	Withdraw(ctx context.Context) (common.Hash, error)
@@ -66,8 +66,10 @@ type service struct {
 	trust    Trust
 	logger   logging.Logger
 
-	quit chan struct{}
-	wg   sync.WaitGroup
+	height    uint64
+	heightMtx sync.Mutex
+	quit      chan struct{}
+	wg        sync.WaitGroup
 }
 
 // NewService constructs a new Service.
@@ -114,22 +116,35 @@ func (s *service) NotifyTrustSignature(peer swarm.Address, id int32, op int32, e
 	return fmt.Errorf("invalid signature")
 }
 
-func (s *service) NotifyTrustRollCall(peer swarm.Address, op int32, expire int64, data []byte) error {
+func (s *service) NotifyTrustRollCall(peer swarm.Address, expire int64, data []byte) error {
+	height := binary.BigEndian.Uint64(data[32:])
+	s.heightMtx.Lock()
+	if s.height >= height {
+		s.heightMtx.Unlock()
+		s.logger.Debugf("rollcall message already handler")
+		return nil
+	}
+	s.height = height
+	s.heightMtx.Unlock()
+
+	fmt.Println(`>>>>>>>>>>>>> rollcall height`, height)
+
 	if !s.nodes.TrustOf(s.base) {
 		signature, err := signLocalTrustData(s.signer, common.BytesToHash(data[:32]), expire)
 		if err != nil {
 			return err
 		}
 
-		err = s.trust.PushTrustSign(context.Background(), op, expire, append(append(append(data[:32], s.base.Bytes()...), signature...), data[32:]...), peer)
+		err = s.trust.PushTrustSign(context.Background(), expire, append(append(append(data[:32], s.base.Bytes()...), signature...), data[32:]...), peer)
 		if err != nil {
 			return err
 		}
+		return s.trust.PushRollCall(context.Background(), expire, data, peer)
 	}
-	return s.trust.PushRollCall(context.Background(), op, expire, data, peer)
+	return nil
 }
 
-func (s *service) NotifyTrustRollCallSign(op int32, expire int64, data []byte) error {
+func (s *service) NotifyTrustRollCallSign(_ swarm.Address, expire int64, data []byte) error {
 	node := common.BytesToHash(data[32:64])
 
 	addr, err := recoverSignAddress(data[64:129], common.BytesToHash(s.base.Bytes()), expire)
@@ -247,13 +262,13 @@ func (s *service) checkExpireMiners() error {
 			}
 			hash, err := s.contract.Inaction(ctx, common.BytesToHash(node.Bytes()), big.NewInt(expire), signature)
 			if err != nil {
-				addr, err := s.nodes.MineAddress(common.BytesToHash(node.Bytes()), s.contract)
-				s.logger.Infof("inaction address %s/%s sendtransaction failed at %s", node.String(), addr, err)
+				addr, _ := s.nodes.MineAddress(common.BytesToHash(node.Bytes()), s.contract)
+				s.logger.Infof("inaction address %s/%s sendtransaction failed at %s", node.String(), addr.String(), err)
 				continue
 			}
 
 			s.nodes.UpdateNodeInactionTxHash(node, hash)
-			s.logger.Infof("inaction address %s transaction %s", node.String(), hash)
+			s.logger.Infof("inaction address %s transaction %s", node.String(), hash.String())
 			// TODO second send transaction
 		}
 	} else {
@@ -285,7 +300,7 @@ func (s *service) manange() {
 
 				byts := make([]byte, 8)
 				binary.BigEndian.PutUint64(byts, height)
-				err := s.trust.PushRollCall(context.Background(), 2, expire, append(s.base.Bytes(), byts...))
+				err := s.trust.PushRollCall(context.Background(), expire, append(s.base.Bytes(), byts...))
 				if err != nil {
 					s.logger.Infof("push to detect online message failed: %s", err)
 				}

@@ -262,7 +262,7 @@ func (l *listener) Listen(from uint64, up interface{}) <-chan struct{} {
 
 	default:
 		// Todo
-		panic(`>>>>>>>>>>>>>>>>>>>`)
+		panic("unknown event updater")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -271,7 +271,7 @@ func (l *listener) Listen(from uint64, up interface{}) <-chan struct{} {
 		cancel()
 	}()
 
-	chainUpdateInterval := (time.Duration(l.blockTime) * time.Second) / 2
+	chainUpdateInterval := time.Duration(l.blockTime) / 2
 
 	synced := make(chan struct{})
 	closeOnce := new(sync.Once)
