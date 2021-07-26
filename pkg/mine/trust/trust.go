@@ -270,85 +270,157 @@ func (s *Service) releaseWait(wait *wait) {
 	}
 }
 
-func (s *Service) TrustsSignature(ctx context.Context, op int32, expire int64, data []byte, peers ...swarm.Address) ([]byte, error) {
+func (s *Service) TrustsSignature(ctx context.Context, op int32, expire int64, data []byte, needTrust uint64, peers ...swarm.Address) ([]byte, error) {
+	if s.topology == nil {
+		return nil, fmt.Errorf("topoloy is not available")
+	}
+
 	ctx, cancal := context.WithTimeout(ctx, time.Second*20)
 	defer cancal()
 
 	// TODO To be optimized
-	if s.topology != nil {
-		w := s.obtainWait()
-		defer s.releaseWait(w)
-		var count uint
-		for _, peer := range peers {
-			err := s.trustSignature(ctx, w.Id, op, expire, data, peer)
-			if err != nil {
-				s.logger.Debugf(`trustSignature failed %s`, err)
-				continue
-			}
-			count += 1
+	w := s.obtainWait()
+	defer s.releaseWait(w)
+	var count uint64
+	for _, peer := range peers {
+		err := s.trustSignature(ctx, w.Id, op, expire, data, peer)
+		if err != nil {
+			s.logger.Debugf(`trustSignature failed %s`, err)
+			continue
 		}
+		count += 1
+	}
 
-		if count == 0 {
-			return nil, fmt.Errorf("no peer found")
-		}
+	if count == 0 {
+		return nil, fmt.Errorf("no peer found")
+	}
 
-		list := make([]*pb.TrustSign, 0, count)
-		for {
-			select {
-			case ts := <-w.C:
-				list = append(list, ts)
-				count -= 1
-				if count == 0 {
-					byts := make([]byte, 0)
-					for _, ts := range list {
-						byts = append(byts, ts.Data...)
-					}
+	if count < needTrust {
+		return nil, fmt.Errorf("send a trusted node smaller than the target")
+	}
 
-					return byts, nil
+	list := make([]*pb.TrustSign, 0, count)
+	for {
+		select {
+		case ts := <-w.C:
+			list = append(list, ts)
+			needTrust -= 1
+			if needTrust == 0 {
+				byts := make([]byte, 0)
+				for _, ts := range list {
+					byts = append(byts, ts.Data...)
 				}
 
-			case <-ctx.Done():
-				return nil, ctx.Err()
+				return byts, nil
 			}
-		}
 
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
-	return nil, fmt.Errorf(`topology is nil`)
+
 }
 
 func (s *Service) PushSignatures(ctx context.Context, id, op int32, expire int64, data []byte, target swarm.Address, peer swarm.Address) error {
-	if s.topology != nil {
-		stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamSign)
-		if err != nil {
-			return err
-		}
-		defer func() {
-			if err != nil {
-				_ = stream.Reset()
-			} else {
-				go stream.FullClose()
-			}
-		}()
-
-		s.logger.Tracef("sending rollcall/sign to peer %v", target)
-		w := protobuf.NewWriter(stream)
-		return w.WriteMsgWithContext(ctx, &pb.TrustSign{
-			Id:     id,
-			Op:     op,
-			Data:   data,
-			Peer:   target.Bytes(),
-			Expire: expire,
-			Result: true,
-		})
+	if s.topology == nil {
+		return fmt.Errorf("topoloy is not available")
 	}
-	return nil
+
+	stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamSign)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = stream.Reset()
+		} else {
+			go stream.FullClose()
+		}
+	}()
+
+	s.logger.Tracef("sending rollcall/sign to peer %v", target)
+	w := protobuf.NewWriter(stream)
+	return w.WriteMsgWithContext(ctx, &pb.TrustSign{
+		Id:     id,
+		Op:     op,
+		Data:   data,
+		Peer:   target.Bytes(),
+		Expire: expire,
+		Result: true,
+	})
+}
+
+func (s *Service) PushSelfTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address) error {
+	if s.topology == nil {
+		return fmt.Errorf("topoloy is not available")
+	}
+
+	peer, err := s.topology.ClosestPeer(target, false)
+	if err != nil {
+		return err
+	}
+
+	stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamRollCallSign)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = stream.Reset()
+		} else {
+			go stream.FullClose()
+		}
+	}()
+
+	s.logger.Tracef("sending rollcall/rollcallsign to peer %v", peer)
+	w := protobuf.NewWriter(stream)
+	return w.WriteMsgWithContext(ctx, &pb.Trust{
+		Expire: expire,
+		Stream: data,
+	})
 }
 
 func (s *Service) PushTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address) error {
-	if s.topology != nil {
-		stream, err := s.streamer.NewStream(ctx, target, nil, protocolName, protocolVersion, streamRollCallSign)
+	if s.topology == nil {
+		return fmt.Errorf("topoloy is not available")
+	}
+
+	stream, err := s.streamer.NewStream(ctx, target, nil, protocolName, protocolVersion, streamRollCallSign)
+	if err != nil {
+		return err
+	}
+	defer func() {
 		if err != nil {
-			return err
+			_ = stream.Reset()
+		} else {
+			go stream.FullClose()
+		}
+	}()
+
+	s.logger.Tracef("sending rollcall/rollcallsign to peer %v", target)
+	w := protobuf.NewWriter(stream)
+	return w.WriteMsgWithContext(ctx, &pb.Trust{
+		Expire: expire,
+		Stream: data,
+	})
+}
+
+func (s *Service) PushRollCall(ctx context.Context, expire int64, data []byte, skips ...swarm.Address) error {
+	if s.topology == nil {
+		return fmt.Errorf("topoloy is not available")
+	}
+
+	err := s.topology.EachPeer(func(a swarm.Address, u uint8) (stop bool, jumpToNext bool, err error) {
+		for _, peer := range skips {
+			if peer.Equal(a) {
+				return false, false, nil
+			}
+		}
+
+		stream, err := s.streamer.NewStream(ctx, a, nil, protocolName, protocolVersion, streamRollCall)
+		if err != nil {
+			s.logger.Debugf("PushRollCall NewStream failed: %s", err)
+			return false, false, nil
 		}
 		defer func() {
 			if err != nil {
@@ -358,53 +430,19 @@ func (s *Service) PushTrustSign(ctx context.Context, expire int64, data []byte, 
 			}
 		}()
 
-		s.logger.Tracef("sending rollcall/rollcallsign to peer %v", target)
 		w := protobuf.NewWriter(stream)
-		return w.WriteMsgWithContext(ctx, &pb.Trust{
+		err = w.WriteMsgWithContext(ctx, &pb.Trust{
 			Expire: expire,
 			Stream: data,
 		})
-	}
-	return nil
-}
-
-func (s *Service) PushRollCall(ctx context.Context, expire int64, data []byte, skips ...swarm.Address) error {
-	if s.topology != nil {
-		err := s.topology.EachPeer(func(a swarm.Address, u uint8) (stop bool, jumpToNext bool, err error) {
-			for _, peer := range skips {
-				if peer.Equal(a) {
-					return false, false, nil
-				}
-			}
-
-			stream, err := s.streamer.NewStream(ctx, a, nil, protocolName, protocolVersion, streamRollCall)
-			if err != nil {
-				s.logger.Debugf("PushRollCall NewStream failed: %s", err)
-				return false, false, nil
-			}
-			defer func() {
-				if err != nil {
-					_ = stream.Reset()
-				} else {
-					go stream.FullClose()
-				}
-			}()
-
-			w := protobuf.NewWriter(stream)
-			err = w.WriteMsgWithContext(ctx, &pb.Trust{
-				Expire: expire,
-				Stream: data,
-			})
-			if err != nil {
-				s.logger.Debugf("PushRollCall write message failed: %s", err)
-			}
-			return false, false, nil
-		})
-
 		if err != nil {
-			s.logger.Tracef("sending rollcall/rollcall failed %v", err)
+			s.logger.Debugf("PushRollCall write message failed: %s", err)
 		}
-		return nil
+		return false, false, nil
+	})
+
+	if err != nil {
+		s.logger.Tracef("sending rollcall/rollcall failed %v", err)
 	}
-	return fmt.Errorf("topoloy is not available")
+	return err
 }

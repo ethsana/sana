@@ -253,7 +253,7 @@ func (s *service) ExpireMiners() ([]swarm.Address, error) {
 	return list, nil
 }
 
-func (s *service) TrustAddress(filter func(swarm.Address) bool) ([]swarm.Address, error) {
+func (s *service) TrustAddress(filter func(swarm.Address) bool) []swarm.Address {
 	s.nodesMtx.RLock()
 	defer s.nodesMtx.RUnlock()
 	addrs := make([]swarm.Address, 0, len(s.nodes))
@@ -269,7 +269,7 @@ func (s *service) TrustAddress(filter func(swarm.Address) bool) ([]swarm.Address
 			}
 		}
 	}
-	return addrs, nil
+	return addrs
 }
 
 func (s *service) TrustOf(node swarm.Address) bool {

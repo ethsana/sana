@@ -37,7 +37,7 @@ type NodeService interface {
 	Start(startBlock uint64) (<-chan struct{}, error)
 	TrustOf(node swarm.Address) bool
 	UpdateNodeLastBlock(node swarm.Address, blockNumber uint64) error
-	TrustAddress(filter func(swarm.Address) bool) ([]swarm.Address, error)
+	TrustAddress(filter func(swarm.Address) bool) []swarm.Address
 	ExpireMiners() ([]swarm.Address, error)
 	MineAddress(node common.Hash, contract MineContract) (common.Address, error)
 	UpdateNodeInactionTxHash(node swarm.Address, hash common.Hash)
@@ -79,8 +79,9 @@ type MineContract interface {
 }
 
 type Trust interface {
-	TrustsSignature(ctx context.Context, op int32, expire int64, data []byte, peer ...swarm.Address) ([]byte, error)
+	TrustsSignature(ctx context.Context, op int32, expire int64, data []byte, num uint64, peer ...swarm.Address) ([]byte, error)
 	PushSignatures(ctx context.Context, id, op int32, expire int64, data []byte, target swarm.Address, peer swarm.Address) error
 	PushTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address) error
+	PushSelfTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address) error
 	PushRollCall(ctx context.Context, expire int64, data []byte, skips ...swarm.Address) error
 }

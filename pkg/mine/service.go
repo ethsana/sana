@@ -176,11 +176,7 @@ func (s *service) checkWorkingWorker() (bool, error) {
 		return true, nil
 	}
 
-	trusts, err := s.nodes.TrustAddress(func(a swarm.Address) bool { return !s.base.Equal(a) })
-	if err != nil {
-		return false, err
-	}
-
+	trusts := s.nodes.TrustAddress(func(a swarm.Address) bool { return !s.base.Equal(a) })
 	if len(trusts) == 0 {
 		return false, fmt.Errorf("no trust nodes")
 	}
@@ -206,7 +202,7 @@ func (s *service) checkWorkingWorker() (bool, error) {
 	quit := make(chan struct{})
 	go func() {
 		defer close(quit)
-		signatures, err = s.trust.TrustsSignature(ctx, 1, expire, append(s.base.Bytes(), signature...), trusts...)
+		signatures, err = s.trust.TrustsSignature(ctx, 1, expire, append(s.base.Bytes(), signature...), needTrust.Uint64(), trusts...)
 	}()
 
 	select {
@@ -276,6 +272,38 @@ func (s *service) checkExpireMiners() error {
 	return nil
 }
 
+func (s *service) checkSelfTrustRollCallSign(height uint64) error {
+	s.heightMtx.Lock()
+	if s.height >= height {
+		s.heightMtx.Unlock()
+		s.logger.Debugf("rollcall message already handler")
+		return fmt.Errorf("already handler")
+	}
+	s.height = height
+	s.heightMtx.Unlock()
+
+	trusts := s.nodes.TrustAddress(func(a swarm.Address) bool { return !a.Equal(s.base) })
+	if len(trusts) == 0 {
+		return fmt.Errorf("no trust nodes")
+	}
+
+	expire := time.Now().Add(time.Minute).Unix()
+	byts := make([]byte, 8)
+	binary.BigEndian.PutUint64(byts, height)
+	for _, addr := range trusts {
+		signature, err := signLocalTrustData(s.signer, addr.Bytes(), expire)
+		if err != nil {
+			s.logger.Debugf("rollcal to %s trust node signature failed: %s", addr.String(), err)
+			continue
+		}
+		err = s.trust.PushSelfTrustSign(context.Background(), expire, append(append(append(addr.Bytes(), s.base.Bytes()...), signature...), byts...), addr)
+		if err != nil {
+			s.logger.Debugf("self push to %s trust sign failed: %s", addr.String(), err)
+		}
+	}
+	return nil
+}
+
 func (s *service) manange() {
 	defer s.wg.Done()
 
@@ -302,8 +330,10 @@ func (s *service) manange() {
 				if err != nil {
 					s.logger.Infof("push to detect online message failed: %s", err)
 				}
-
-				expireChan = time.After(time.Second * 20)
+			}
+			err := s.checkSelfTrustRollCallSign(height)
+			if err != nil {
+				s.logger.Debugf("self check rollcall sign failed: at %s", err)
 			}
 
 		case <-expireChan:
@@ -460,9 +490,9 @@ func (s *service) Status(ctx context.Context) (bool, *big.Int, *big.Int, *big.In
 
 func (s *service) Withdraw(ctx context.Context) (common.Hash, error) {
 	node := common.BytesToHash(s.base.Bytes())
-	trusts, err := s.nodes.TrustAddress(func(a swarm.Address) bool { return !a.Equal(s.base) })
-	if err != nil {
-		return common.Hash{}, err
+	trusts := s.nodes.TrustAddress(func(a swarm.Address) bool { return !a.Equal(s.base) })
+	if len(trusts) == 0 {
+		return common.Hash{}, fmt.Errorf("no trust nodes")
 	}
 
 	needTrust, err := s.contract.ValidateTrusts(ctx)
@@ -486,7 +516,7 @@ func (s *service) Withdraw(ctx context.Context) (common.Hash, error) {
 	quit := make(chan struct{})
 	go func() {
 		defer close(quit)
-		signatures, err = s.trust.TrustsSignature(ctx, 1, expire, append(s.base.Bytes(), signature...), trusts...)
+		signatures, err = s.trust.TrustsSignature(ctx, 1, expire, append(s.base.Bytes(), signature...), needTrust.Uint64(), trusts...)
 	}()
 
 	select {
