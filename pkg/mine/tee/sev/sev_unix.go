@@ -45,7 +45,7 @@ func sev_enabled_in_kernel() *Validate {
 		return &Validate{info, false}
 	}
 
-	ok := strings.EqualFold(string(byts), "1")
+	ok := strings.HasPrefix(string(byts), "1")
 	return &Validate{info, ok}
 }
 
