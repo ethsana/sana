@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethsana/sana/pkg/logging"
 	"github.com/ethsana/sana/pkg/mine/trust/pb"
 	"github.com/ethsana/sana/pkg/p2p"
@@ -117,6 +118,7 @@ func (s *Service) handlerSign(ctx context.Context, p p2p.Peer, stream p2p.Stream
 
 		return nil
 	} else {
+	retry:
 		peer, err := s.topology.ClosestPeer(target, false, p.Address)
 		if err != nil {
 			return err
@@ -125,8 +127,17 @@ func (s *Service) handlerSign(ctx context.Context, p p2p.Peer, stream p2p.Stream
 			return p2p.ErrPeerNotFound
 		}
 
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
 		stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamSign)
 		if err != nil {
+			if err == p2p.ErrPeerNotFound {
+				goto retry
+			}
 			return err
 		}
 		defer func() {
@@ -137,7 +148,7 @@ func (s *Service) handlerSign(ctx context.Context, p p2p.Peer, stream p2p.Stream
 			}
 		}()
 
-		s.logger.Tracef("sending rollcall/sign to peer %v with %v", peer, target)
+		s.logger.Tracef("sending rollcall/sign to peer %v to %v with %s", peer, target, common.BytesToHash(req.Data[:32]).String())
 		w := protobuf.NewWriter(stream)
 		return w.WriteMsgWithContext(ctx, &req)
 	}
@@ -195,6 +206,7 @@ func (s *Service) handlerRollCallSign(ctx context.Context, p p2p.Peer, stream p2
 		}
 		return fmt.Errorf("observer is not available")
 	} else {
+	retry:
 		peer, err := s.topology.ClosestPeer(target, false, p.Address)
 		if err != nil {
 			return err
@@ -203,8 +215,17 @@ func (s *Service) handlerRollCallSign(ctx context.Context, p p2p.Peer, stream p2
 			return p2p.ErrPeerNotFound
 		}
 
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
 		stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamRollCallSign)
 		if err != nil {
+			if err == p2p.ErrPeerNotFound {
+				goto retry
+			}
 			return err
 		}
 		defer func() {
@@ -222,12 +243,23 @@ func (s *Service) handlerRollCallSign(ctx context.Context, p p2p.Peer, stream p2
 }
 
 func (s *Service) trustSignature(ctx context.Context, id, op int32, expire int64, data []byte, target swarm.Address) error {
+retry:
 	peer, err := s.topology.ClosestPeer(target, false)
 	if err != nil {
 		return err
 	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamSign)
 	if err != nil {
+		if err == p2p.ErrPeerNotFound {
+			goto retry
+		}
 		return err
 	}
 	defer func() {
@@ -265,9 +297,7 @@ func (s *Service) obtainWait() *wait {
 func (s *Service) releaseWait(wait *wait) {
 	s.waitsMtx.Lock()
 	defer s.waitsMtx.Unlock()
-	if _, ok := s.waits[wait.Id]; ok {
-		delete(s.waits, wait.Id)
-	}
+	delete(s.waits, wait.Id)
 }
 
 func (s *Service) TrustsSignature(ctx context.Context, op int32, expire int64, data []byte, needTrust uint64, peers ...swarm.Address) ([]byte, error) {
@@ -322,12 +352,22 @@ func (s *Service) TrustsSignature(ctx context.Context, op int32, expire int64, d
 }
 
 func (s *Service) PushSignatures(ctx context.Context, id, op int32, expire int64, data []byte, target swarm.Address, peer swarm.Address) error {
-	if s.topology == nil {
-		return fmt.Errorf("topoloy is not available")
-	}
-
+retry:
 	stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamSign)
 	if err != nil {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		if err == p2p.ErrPeerNotFound {
+			peer, err = s.topology.ClosestPeer(target, false, peer)
+			if err != nil {
+				return err
+			}
+			goto retry
+		}
 		return err
 	}
 	defer func() {
@@ -351,17 +391,23 @@ func (s *Service) PushSignatures(ctx context.Context, id, op int32, expire int64
 }
 
 func (s *Service) PushSelfTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address) error {
-	if s.topology == nil {
-		return fmt.Errorf("topoloy is not available")
-	}
-
+retry:
 	peer, err := s.topology.ClosestPeer(target, false)
 	if err != nil {
 		return err
 	}
 
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamRollCallSign)
 	if err != nil {
+		if err == p2p.ErrPeerNotFound {
+			goto retry
+		}
 		return err
 	}
 	defer func() {
@@ -380,13 +426,24 @@ func (s *Service) PushSelfTrustSign(ctx context.Context, expire int64, data []by
 	})
 }
 
-func (s *Service) PushTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address) error {
-	if s.topology == nil {
-		return fmt.Errorf("topoloy is not available")
-	}
-
-	stream, err := s.streamer.NewStream(ctx, target, nil, protocolName, protocolVersion, streamRollCallSign)
+func (s *Service) PushTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address, peer swarm.Address) error {
+retry:
+	stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamRollCallSign)
 	if err != nil {
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		if err == p2p.ErrPeerNotFound {
+			peer, err = s.topology.ClosestPeer(target, false)
+			if err != nil {
+				return err
+			}
+			goto retry
+		}
 		return err
 	}
 	defer func() {
@@ -406,10 +463,6 @@ func (s *Service) PushTrustSign(ctx context.Context, expire int64, data []byte, 
 }
 
 func (s *Service) PushRollCall(ctx context.Context, expire int64, data []byte, skips ...swarm.Address) error {
-	if s.topology == nil {
-		return fmt.Errorf("topoloy is not available")
-	}
-
 	err := s.topology.EachPeer(func(a swarm.Address, u uint8) (stop bool, jumpToNext bool, err error) {
 		for _, peer := range skips {
 			if peer.Equal(a) {

@@ -66,7 +66,6 @@ import (
 	"github.com/ethsana/sana/pkg/settlement/pseudosettle"
 	"github.com/ethsana/sana/pkg/settlement/swap"
 	"github.com/ethsana/sana/pkg/settlement/swap/chequebook"
-	"github.com/ethsana/sana/pkg/settlement/swap/erc20"
 	"github.com/ethsana/sana/pkg/settlement/swap/priceoracle"
 	"github.com/ethsana/sana/pkg/shed"
 	"github.com/ethsana/sana/pkg/steward"
@@ -485,23 +484,21 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 			}
 
 			mineService := minecontract.New(swapBackend, transactionService, mineContractAddress)
-			erc20Service := erc20.New(swapBackend, transactionService, erc20Address)
 
 			nodeSvc, err := nodeservice.New(stateStore, nodeStore, logger, eventListener, swapBackend, startBlock)
 			if err != nil {
 				return nil, err
 			}
 
-			mineSvc, err = mine.NewService(swarmAddress, mineService, nodeSvc, signer, logger, warmupTime)
-			if err != nil {
-				return nil, err
-			}
-			b.mineCloser = mineSvc
+			mineSvc = mine.NewService(swarmAddress, mineService, nodeSvc, signer, logger, warmupTime, mine.Options{
+				Store:              stateStore,
+				Backend:            swapBackend,
+				TransactionService: transactionService,
+				OverlayEthAddress:  overlayEthAddress,
+				DeployGasPrice:     o.DeployGasPrice,
+			})
 
-			err = mineSvc.Deposit(stateStore, swapBackend, erc20Service, overlayEthAddress, o.DeployGasPrice)
-			if err != nil {
-				return nil, err
-			}
+			b.mineCloser = mineSvc
 		}
 	}
 

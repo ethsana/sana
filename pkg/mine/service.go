@@ -28,23 +28,18 @@ const (
 	mineDepositKey = "mine_deposit"
 )
 
-const (
-	balanceCheckBackoffDuration = 20 * time.Second
-	balanceCheckMaxRetries      = 10
-)
-
-const ()
-
 var (
 	// ErrNotFound is the error returned when issuer with given batch ID does not exist.
 	ErrNotFound = errors.New("not found")
 )
 
+// 50000 SANA
+var defaultMineDeposit = new(big.Int).Mul(new(big.Int).Exp(big.NewInt(10), big.NewInt(16), nil), big.NewInt(5e4))
+
 // Service is the miner service interface.
 type Service interface {
 	Start(startBlock uint64) (<-chan struct{}, error)
 	Close() error
-	Deposit(store storage.StateStorer, swapBackend transaction.Backend, erc20Service erc20.Service, overlayEthAddress common.Address, deployGasPrice string) error
 	SetTrust(rollcall Trust)
 
 	NotifyTrustSignature(pper swarm.Address, id, op int32, expire int64, data []byte) error
@@ -56,8 +51,7 @@ type Service interface {
 	CashDeposit(ctx context.Context) (common.Hash, error)
 }
 
-// service handles postage batches
-// stores the active batches.
+// service handles mine
 type service struct {
 	base     swarm.Address
 	signer   crypto.Signer
@@ -66,10 +60,20 @@ type service struct {
 	trust    Trust
 	logger   logging.Logger
 
+	opt *Options
+
 	height    uint64
 	heightMtx sync.Mutex
 	quit      chan struct{}
 	wg        sync.WaitGroup
+}
+
+type Options struct {
+	Store              storage.StateStorer
+	Backend            transaction.Backend
+	TransactionService transaction.Service
+	OverlayEthAddress  common.Address
+	DeployGasPrice     string
 }
 
 // NewService constructs a new Service.
@@ -80,17 +84,17 @@ func NewService(
 	signer crypto.Signer,
 	logger logging.Logger,
 	warmupTime time.Duration,
-) (Service, error) {
-	s := &service{
+	opt Options,
+) Service {
+	return &service{
 		base:     base,
 		signer:   signer,
 		contract: contract,
 		nodes:    nodes,
 		logger:   logger,
+		opt:      &opt,
 		quit:     make(chan struct{}),
 	}
-
-	return s, nil
 }
 
 func (s *service) NotifyTrustSignature(peer swarm.Address, id int32, op int32, expire int64, data []byte) error {
@@ -111,7 +115,10 @@ func (s *service) NotifyTrustSignature(peer swarm.Address, id int32, op int32, e
 		if err != nil {
 			return err
 		}
-		return s.trust.PushSignatures(context.Background(), id, op, expire, signature, swarm.NewAddress(node.Bytes()), peer)
+
+		ctx, cancal := context.WithTimeout(context.Background(), time.Minute)
+		defer cancal()
+		return s.trust.PushSignatures(ctx, id, op, expire, signature, swarm.NewAddress(node.Bytes()), peer)
 	}
 	return fmt.Errorf("invalid signature")
 }
@@ -127,17 +134,20 @@ func (s *service) NotifyTrustRollCall(peer swarm.Address, expire int64, data []b
 	s.height = height
 	s.heightMtx.Unlock()
 
+	ctx, cancal := context.WithTimeout(context.Background(), time.Minute)
+	defer cancal()
+
 	if !s.nodes.TrustOf(s.base) {
 		signature, err := signLocalTrustData(s.signer, common.BytesToHash(data[:32]), expire)
 		if err != nil {
 			return err
 		}
 
-		err = s.trust.PushTrustSign(context.Background(), expire, append(append(append(data[:32], s.base.Bytes()...), signature...), data[32:]...), peer)
+		err = s.trust.PushTrustSign(ctx, expire, append(append(append(data[:32], s.base.Bytes()...), signature...), data[32:]...), swarm.NewAddress(data[32:]), peer)
 		if err != nil {
 			return err
 		}
-		return s.trust.PushRollCall(context.Background(), expire, data, peer)
+		return s.trust.PushRollCall(ctx, expire, data, peer)
 	}
 	return nil
 }
@@ -162,6 +172,94 @@ func (s *service) NotifyTrustRollCallSign(_ swarm.Address, expire int64, data []
 	return fmt.Errorf("invalid signature")
 }
 
+func (s *service) mortgageMiner(ctx context.Context) error {
+	o := s.opt
+
+	if o.DeployGasPrice != "" {
+		gasPrice, ok := new(big.Int).SetString(o.DeployGasPrice, 10)
+		if !ok {
+			return fmt.Errorf("deploy gas price \"%s\" cannot be parsed", o.DeployGasPrice)
+		}
+		ctx = sctx.SetGasPrice(ctx, gasPrice)
+	}
+
+	var txHash common.Hash
+	err := o.Store.Get(mineDepositKey, &txHash)
+	if err != nil && err != storage.ErrNotFound {
+		return err
+	}
+
+	if err == storage.ErrNotFound {
+		erc20Address, err := s.contract.Token(ctx)
+		if err != nil {
+			return err
+		}
+
+		erc20Service := erc20.New(o.Backend, o.TransactionService, erc20Address)
+		s.logger.Info("no mine deposit tx found, deposit now.")
+
+		gasPrice, err := o.Backend.SuggestGasPrice(ctx)
+		if err != nil {
+			return err
+		}
+
+		minimumEth := gasPrice.Mul(gasPrice, big.NewInt(250000))
+
+		ethBalance, err := o.Backend.BalanceAt(ctx, o.OverlayEthAddress, nil)
+		if err != nil {
+			return err
+		}
+		if ethBalance.Cmp(minimumEth) < 0 {
+			return fmt.Errorf("insufficient ETH and gas payment")
+		}
+
+		erc20Balance, err := erc20Service.BalanceOf(ctx, o.OverlayEthAddress)
+		if err != nil {
+			return err
+		}
+		if erc20Balance.Cmp(defaultMineDeposit) < 0 {
+			return fmt.Errorf("ETH address SANA amount is less than 50000 SANA")
+		}
+
+		lockupAddress, err := s.contract.Lockup(ctx)
+		if err != nil {
+			return err
+		}
+
+		amount, err := erc20Service.Allowance(ctx, o.OverlayEthAddress, lockupAddress)
+		if err != nil {
+			return err
+		}
+
+		if amount.Cmp(defaultMineDeposit) < 0 {
+			hash, err := erc20Service.Approve(ctx, lockupAddress, defaultMineDeposit)
+			if err != nil {
+				return err
+			}
+
+			err = erc20Service.WaitForApprove(ctx, hash)
+			if err != nil {
+				return err
+			}
+		}
+
+		txHash, err = s.contract.Deposit(ctx, common.BytesToHash(s.base.Bytes()))
+		if err != nil {
+			return err
+		}
+
+		s.logger.Infof("mine deposit in transaction %x", txHash)
+		err = o.Store.Put(mineDepositKey, txHash)
+		if err != nil {
+			return err
+		}
+	} else {
+		s.logger.Infof("waiting for mine deposit in transaction %x", txHash)
+	}
+	defer o.Store.Delete(mineDepositKey)
+	return s.contract.WaitForDeposit(ctx, txHash)
+}
+
 func (s *service) checkWorkingWorker() (bool, error) {
 	ctx, cancal := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancal()
@@ -174,6 +272,30 @@ func (s *service) checkWorkingWorker() (bool, error) {
 
 	if work {
 		return true, nil
+	}
+
+	// check deposit
+	deposit, err := s.contract.CheckDeposit(ctx, node)
+	if err != nil {
+		return false, err
+	}
+
+	if !deposit {
+		quit := make(chan struct{})
+		go func() {
+			defer close(quit)
+			err = s.mortgageMiner(ctx)
+		}()
+
+		select {
+		case <-quit:
+		case <-ctx.Done():
+			return false, ctx.Err()
+		}
+
+		if err != nil {
+			return false, err
+		}
 	}
 
 	trusts := s.nodes.TrustAddress(func(a swarm.Address) bool { return !s.base.Equal(a) })
@@ -236,6 +358,20 @@ func (s *service) checkExpireMiners() error {
 		return err
 	}
 
+	// dict := make(map[string][]string)
+	// for _, addr := range miners {
+	// 	eth, _ := s.nodes.MineAddress(common.BytesToHash(addr.Bytes()), s.contract)
+	// 	dict[eth.String()] = append(dict[eth.String()], addr.String())
+	// }
+	// for eth, nodes := range dict {
+	// 	fmt.Println(`>>>`, eth)
+	// 	for _, v := range nodes {
+	// 		fmt.Println(`>>>`, "\t", v)
+	// 	}
+	// }
+	// fmt.Printf("\033[0;31;40m  >>>>>>>>>>>>>>>>>>>>>>>>> expire size %v \033[0m\n", len(miners))
+	// return nil
+
 	if len(miners) == 0 {
 		return nil
 	}
@@ -265,27 +401,31 @@ func (s *service) checkExpireMiners() error {
 			s.logger.Infof("inaction address %s transaction %s", node.String(), hash.String())
 			// TODO second send transaction
 		}
-	} else {
-		// TODO multi trust signature
 	}
+	// else {
+	// 	// TODO multi trust signature
+	// }
 
 	return nil
 }
 
 func (s *service) checkSelfTrustRollCallSign(height uint64) error {
-	s.heightMtx.Lock()
-	if s.height >= height {
-		s.heightMtx.Unlock()
-		s.logger.Debugf("rollcall message already handler")
-		return fmt.Errorf("already handler")
-	}
-	s.height = height
-	s.heightMtx.Unlock()
+	// s.heightMtx.Lock()
+	// if s.height >= height {
+	// 	s.heightMtx.Unlock()
+	// 	s.logger.Debugf("rollcall message already handler")
+	// 	return fmt.Errorf("already handler")
+	// }
+	// s.height = height
+	// s.heightMtx.Unlock()
 
 	trusts := s.nodes.TrustAddress(func(a swarm.Address) bool { return !a.Equal(s.base) })
 	if len(trusts) == 0 {
 		return fmt.Errorf("no trust nodes")
 	}
+
+	ctx, cancal := context.WithTimeout(context.Background(), time.Minute)
+	defer cancal()
 
 	expire := time.Now().Add(time.Minute).Unix()
 	byts := make([]byte, 8)
@@ -296,7 +436,7 @@ func (s *service) checkSelfTrustRollCallSign(height uint64) error {
 			s.logger.Debugf("rollcal to %s trust node signature failed: %s", addr.String(), err)
 			continue
 		}
-		err = s.trust.PushSelfTrustSign(context.Background(), expire, append(append(append(addr.Bytes(), s.base.Bytes()...), signature...), byts...), addr)
+		err = s.trust.PushSelfTrustSign(ctx, expire, append(append(append(addr.Bytes(), s.base.Bytes()...), signature...), byts...), addr)
 		if err != nil {
 			s.logger.Debugf("self push to %s trust sign failed: %s", addr.String(), err)
 		}
@@ -330,6 +470,9 @@ func (s *service) manange() {
 				if err != nil {
 					s.logger.Infof("push to detect online message failed: %s", err)
 				}
+
+				// check expire nodes
+				expireChan = time.After(time.Second)
 			}
 			err := s.checkSelfTrustRollCallSign(height)
 			if err != nil {
@@ -360,100 +503,12 @@ func (s *service) manange() {
 	}
 }
 
-func (s *service) Deposit(
-	store storage.StateStorer,
-	swapBackend transaction.Backend,
-	erc20Service erc20.Service,
-	overlayEthAddress common.Address,
-	deployGasPrice string) error {
-
-	ctx := context.Background()
-
-	node := common.BytesToHash(s.base.Bytes())
-
-	ok, err := s.contract.CheckDeposit(ctx, node)
-	if err != nil {
-		return err
-	}
-
-	if ok {
-		s.logger.Infof("using the address %v has deposit.", s.base.String())
-		return nil
-	}
-
-	if deployGasPrice != "" {
-		gasPrice, ok := new(big.Int).SetString(deployGasPrice, 10)
-		if !ok {
-			return fmt.Errorf("deploy gas price \"%s\" cannot be parsed", deployGasPrice)
-		}
-		ctx = sctx.SetGasPrice(ctx, gasPrice)
-	}
-
-	var txHash common.Hash
-	err = store.Get(mineDepositKey, &txHash)
-	if err != nil && err != storage.ErrNotFound {
-		return err
-	}
-
-	initialDeposit, _ := new(big.Int).SetString("500000000000000000000", 10)
-	if err == storage.ErrNotFound {
-		s.logger.Info("no mine deposit tx found, deposit now.")
-		err = checkBalance(ctx, swapBackend, erc20Service, overlayEthAddress, s.logger)
-		if err != nil {
-			return err
-		}
-
-		lockupAddress, err := s.contract.Lockup(ctx)
-		if err != nil {
-			return err
-		}
-
-		amount, err := erc20Service.Allowance(ctx, overlayEthAddress, lockupAddress)
-		if err != nil {
-			return err
-		}
-
-		if amount.Cmp(initialDeposit) < 0 {
-			hash, err := erc20Service.Approve(ctx, lockupAddress, initialDeposit)
-			if err != nil {
-				return err
-			}
-
-			err = erc20Service.WaitForApprove(ctx, hash)
-			if err != nil {
-				return err
-			}
-		}
-
-		txHash, err = s.contract.Deposit(ctx, common.BytesToHash(s.base.Bytes()))
-		if err != nil {
-			return err
-		}
-
-		s.logger.Infof("mine deposit in transaction %x", txHash)
-		err = store.Put(mineDepositKey, txHash)
-		if err != nil {
-			return err
-		}
-	} else {
-		s.logger.Infof("waiting for mine deposit in transaction %x", txHash)
-	}
-	err = s.contract.WaitForDeposit(ctx, txHash)
-	if err != nil {
-		err = store.Delete(mineDepositKey)
-		if err != nil {
-			return err
-		}
-	}
-	return err
-}
-
 func (s *service) SetTrust(trust Trust) {
 	s.trust = trust
 }
 
 func (s *service) NotifyCertificate(peer swarm.Address, data []byte) ([]byte, error) {
-	// todo check peer is active
+	// TODO check peer is active
 	deadline := big.NewInt(time.Now().Add(time.Minute).Unix())
 	deadbyts := deadline.Bytes()
 	byts := make([]byte, 64)
@@ -577,67 +632,4 @@ func (s *service) Close() error {
 		s.logger.Warning("mine shutting down with running goroutines")
 	}
 	return nil
-}
-
-func checkBalance(
-	ctx context.Context,
-	swapBackend transaction.Backend,
-	erc20Service erc20.Service,
-	overlayEthAddress common.Address,
-	logger logging.Logger) error {
-	timeoutCtx, cancel := context.WithTimeout(ctx, balanceCheckBackoffDuration*time.Duration(balanceCheckMaxRetries))
-	defer cancel()
-
-	initialDeposit, _ := new(big.Int).SetString("500000000000000000000", 10)
-
-	for {
-
-		erc20Balance, err := erc20Service.BalanceOf(timeoutCtx, overlayEthAddress)
-		if err != nil {
-			return err
-		}
-
-		ethBalance, err := swapBackend.BalanceAt(timeoutCtx, overlayEthAddress, nil)
-		if err != nil {
-			return err
-		}
-
-		gasPrice, err := swapBackend.SuggestGasPrice(timeoutCtx)
-		if err != nil {
-			return err
-		}
-
-		minimumEth := gasPrice.Mul(gasPrice, big.NewInt(250000))
-
-		insufficientERC20 := erc20Balance.Cmp(initialDeposit) < 0
-		insufficientETH := ethBalance.Cmp(minimumEth) < 0
-
-		if insufficientERC20 || insufficientETH {
-			neededERC20, mod := new(big.Int).DivMod(initialDeposit, big.NewInt(10000000000000000), new(big.Int))
-			if mod.Cmp(big.NewInt(0)) > 0 {
-				// always round up the division as the bzzaar cannot handle decimals
-				neededERC20.Add(neededERC20, big.NewInt(1))
-			}
-
-			if insufficientETH && insufficientERC20 {
-				logger.Warningf("cannot continue until there is sufficient ETH (for Gas) and at least %d SANA available on %x", neededERC20, overlayEthAddress)
-			} else if insufficientETH {
-				logger.Warningf("cannot continue until there is sufficient ETH (for Gas) available on %x", overlayEthAddress)
-			} else {
-				logger.Warningf("cannot continue until there is at least %d SANA available on %x", neededERC20, overlayEthAddress)
-			}
-			select {
-			case <-time.After(balanceCheckBackoffDuration):
-			case <-timeoutCtx.Done():
-				if insufficientERC20 {
-					return fmt.Errorf("insufficient SANA for initial deposit")
-				} else {
-					return fmt.Errorf("insufficient ETH for initial deposit")
-				}
-			}
-			continue
-		}
-
-		return nil
-	}
 }

@@ -61,6 +61,7 @@ type Storer interface {
 
 type MineContract interface {
 	IsWorking(ctx context.Context, node common.Hash) (bool, error)
+	Token(ctx context.Context) (common.Address, error)
 	Lockup(ctx context.Context) (common.Address, error)
 	MinersReceived(ctx context.Context, node common.Hash) (common.Address, error)
 	MinersWithdraw(ctx context.Context, node common.Hash) (*big.Int, error)
@@ -81,7 +82,7 @@ type MineContract interface {
 type Trust interface {
 	TrustsSignature(ctx context.Context, op int32, expire int64, data []byte, num uint64, peer ...swarm.Address) ([]byte, error)
 	PushSignatures(ctx context.Context, id, op int32, expire int64, data []byte, target swarm.Address, peer swarm.Address) error
-	PushTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address) error
+	PushTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address, peer swarm.Address) error
 	PushSelfTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address) error
 	PushRollCall(ctx context.Context, expire int64, data []byte, skips ...swarm.Address) error
 }

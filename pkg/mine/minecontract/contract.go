@@ -123,6 +123,22 @@ func (s *service) Reward(ctx context.Context, node common.Hash) (*big.Int, error
 	return balance, nil
 }
 
+func (s *service) Token(ctx context.Context) (common.Address, error) {
+	callData, err := minerABI.Pack(`token`)
+	if err != nil {
+		return common.Address{}, err
+	}
+	data, err := s.transactionService.Call(ctx, &transaction.TxRequest{
+		To:   &s.address,
+		Data: callData,
+	})
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return common.BytesToAddress(data), nil
+}
+
 func (s *service) Lockup(ctx context.Context) (common.Address, error) {
 	callData, err := minerABI.Pack(`lockup`)
 	if err != nil {

@@ -2,7 +2,9 @@ package debugapi
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethsana/sana/pkg/bigint"
@@ -26,9 +28,12 @@ func (s *Service) mineWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := s.mine.Withdraw(context.Background())
+	ctx, cancal := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancal()
+
+	hash, err := s.mine.Withdraw(ctx)
 	if err != nil {
-		jsonhttp.InternalServerError(w, errCantWithdrawOfMine)
+		jsonhttp.InternalServerError(w, fmt.Sprint(errCantWithdrawOfMine, " at: ", err.Error()))
 		return
 	}
 	jsonhttp.OK(w, withdrawResponse{hash})
