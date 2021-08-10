@@ -9,12 +9,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"math"
 	"math/big"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	tee "github.com/ethsana/sana-tee"
 	"github.com/ethsana/sana/pkg/crypto"
 	"github.com/ethsana/sana/pkg/logging"
 	"github.com/ethsana/sana/pkg/sctx"
@@ -64,6 +64,8 @@ type service struct {
 
 	opt *Options
 
+	device *tee.Device
+
 	height    uint64
 	heightMtx sync.Mutex
 
@@ -97,6 +99,12 @@ func NewService(
 	warmupTime time.Duration,
 	opt Options,
 ) Service {
+
+	device, err := tee.DeviceID()
+	if err != nil {
+		logger.Infof("get device id fail: %s", err.Error())
+	}
+
 	return &service{
 		base:     base,
 		signer:   signer,
@@ -104,6 +112,7 @@ func NewService(
 		nodes:    nodes,
 		oracle:   oracle,
 		logger:   logger,
+		device:   device,
 		opt:      &opt,
 		rcnc:     make(chan rcn, 1024),
 		quit:     make(chan struct{}),
@@ -116,19 +125,31 @@ func (s *service) NotifyTrustSignature(peer swarm.Address, expire int64, data []
 
 	// id node
 	node := common.BytesToHash(data[4:36])
+	cate := int64(0)
+	if len(data) > 37 {
+		device := tee.NewDevice(data[37:])
+		ok, err := device.Verify()
+		if err != nil {
+			s.logger.Errorf("device verify fail %s", err.Error())
+		}
+
+		if ok {
+			cate = int64(1)
+		}
+	}
 
 	var resp []byte
 	if v := data[36] == 0; v {
 		price := common.BigToHash(s.oracle.Price())
 
-		resp, err = signLocalTrustData(s.signer, node, expire, price)
+		resp, err = signLocalTrustData(s.signer, node, cate, expire, price)
 		if err != nil {
 			return err
 		}
 
 		resp = append(resp, price.Bytes()...)
 	} else {
-		resp, err = signLocalTrustData(s.signer, node, expire)
+		resp, err = signLocalTrustData(s.signer, node, cate, expire)
 		if err != nil {
 			return err
 		}
@@ -215,7 +236,12 @@ func (s *service) mortgageMiner(ctx context.Context) error {
 		quit := make(chan struct{})
 		go func() {
 			defer close(quit)
-			data, err = s.trust.TrustsSignature(ctx, expire, append(s.base.Bytes(), byte(0)), 1, trusts...)
+			buffer := append(s.base.Bytes(), byte(0))
+
+			if s.device != nil {
+				buffer = append(buffer, s.device.Bytes()...)
+			}
+			data, err = s.trust.TrustsSignature(ctx, expire, buffer, 1, trusts...)
 		}()
 
 		select {
@@ -225,10 +251,6 @@ func (s *service) mortgageMiner(ctx context.Context) error {
 		}
 		if err != nil {
 			return err
-		}
-
-		if len(data) == 87 {
-			return fmt.Errorf("insufficient signatures")
 		}
 
 		erc20Service := erc20.New(o.Backend, o.TransactionService, erc20Address)
@@ -280,8 +302,12 @@ func (s *service) mortgageMiner(ctx context.Context) error {
 		}
 
 		price := common.BytesToHash(data[65:]).Big()
+		cate := big.NewInt(0)
+		if s.device != nil {
+			cate = big.NewInt(1)
+		}
 
-		txHash, err = s.contract.Deposit(ctx, common.BytesToHash(s.base.Bytes()), price, big.NewInt(expire), data[:65])
+		txHash, err = s.contract.Deposit(ctx, common.BytesToHash(s.base.Bytes()), cate, price, big.NewInt(expire), data[:65])
 		if err != nil {
 			return err
 		}
@@ -355,7 +381,12 @@ func (s *service) checkWorkingWorker() (bool, error) {
 	quit := make(chan struct{})
 	go func() {
 		defer close(quit)
-		signatures, err = s.trust.TrustsSignature(ctx, expire, append(s.base.Bytes(), byte(1)), needTrust.Uint64(), trusts...)
+
+		buffer := append(s.base.Bytes(), byte(1))
+		if s.device != nil {
+			buffer = append(buffer, s.device.Bytes()...)
+		}
+		signatures, err = s.trust.TrustsSignature(ctx, expire, buffer, needTrust.Uint64(), trusts...)
 	}()
 
 	select {
@@ -371,7 +402,12 @@ func (s *service) checkWorkingWorker() (bool, error) {
 		return false, fmt.Errorf("insufficient signatures")
 	}
 
-	hash, err := s.contract.Active(ctx, node, new(big.Int).SetInt64(expire), signatures)
+	cate := big.NewInt(0)
+	if s.device != nil {
+		cate = big.NewInt(1)
+	}
+
+	hash, err := s.contract.Active(ctx, node, cate, new(big.Int).SetInt64(expire), signatures)
 	if err != nil {
 		return false, err
 	}
@@ -389,37 +425,6 @@ func (s *service) checkExpireMiners() error {
 		return err
 	}
 
-	// dict := make(map[string][]string)
-	// for _, addr := range miners {
-	// 	eth, _ := s.nodes.MineAddress(common.BytesToHash(addr.Bytes()), s.contract)
-
-	// 	dict[strings.ToLower(eth.String())] = append(dict[strings.ToLower(eth.String())], addr.String())
-	// }
-
-	// _eths := []string{
-	// 	`0x1686385c9ba79b146481392bc5f21095f9c17837`,
-	// 	`0xd93200cc27f07d9106720ac56cb68d3d129aaf3b`,
-	// }
-
-	// for _, eth := range _eths {
-	// 	if list, ok := dict[eth]; ok {
-	// 		fmt.Println(`>>>`, eth, len(list))
-	// 		for _, v := range list {
-	// 			fmt.Println(`>>>`, "\t", v)
-	// 		}
-	// 	}
-	// }
-
-	// for eth, nodes := range dict {
-	// 	fmt.Println(`>>>`, eth)
-	// 	for _, v := range nodes {
-	// 		fmt.Println(`>>>`, "\t", v)
-	// 	}
-	// }
-	num := math.Ceil(float64(len(miners)) / 10)
-	fmt.Printf("\033[0;31;40m  >>>>>>>>>>>>>>>>>>>>>>>>> expire size %v / %v \033[0m\n", len(miners), num)
-	// return nil
-
 	if len(miners) == 0 {
 		return nil
 	}
@@ -436,7 +441,7 @@ func (s *service) checkExpireMiners() error {
 		nodes := make([]common.Hash, 0, 10)
 		for i := 0; i < 10; i++ {
 			if count -= 1; count < 0 {
-				return nil
+				break
 			}
 			nodes = append(nodes, common.BytesToHash(miners[count].Bytes()))
 		}
@@ -463,6 +468,7 @@ func (s *service) checkExpireMiners() error {
 			goto loop
 		}
 	}
+
 	// else {
 	// 	// TODO multi trust signature
 	// }
@@ -548,6 +554,10 @@ func (s *service) manange() {
 			}
 
 		case rc := <-s.rcnc:
+			if rc.Expire <= time.Now().Unix() {
+				break
+			}
+
 			err := s.signRollCallToTrust(rc.Expire, rc.Height, rc.Address)
 			if err != nil {
 				s.logger.Errorf("sign rollcall to trust %s fail %s", rc.Address.String(), err.Error())

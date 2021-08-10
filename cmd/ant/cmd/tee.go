@@ -5,11 +5,7 @@
 package cmd
 
 import (
-	"runtime"
-
-	"github.com/ethsana/sana/pkg/mine/tee/sev"
-	"github.com/ethsana/sana/pkg/mine/tee/sgx"
-
+	tee "github.com/ethsana/sana-tee"
 	"github.com/spf13/cobra"
 )
 
@@ -18,15 +14,7 @@ func (c *command) initTeeCmd() {
 		Use:   "tee",
 		Short: "Print TEE related information",
 		Run: func(cmd *cobra.Command, args []string) {
-			if runtime.GOOS == `windows` {
-				cmd.Println(`Currently does not support the current system`)
-				return
-			}
-			cmd.Println(`Platform: AMD`)
-			cmd.Print(sev.Output())
-
-			cmd.Println(`Platform: Intel`)
-			cmd.Print(sgx.Output())
+			cmd.Println(tee.Output())
 		},
 	}
 	v.SetOut(c.root.OutOrStdout())

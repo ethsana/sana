@@ -23,14 +23,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethsana/sana"
+	tee "github.com/ethsana/sana-tee"
 	"github.com/ethsana/sana/pkg/crypto"
 	"github.com/ethsana/sana/pkg/crypto/clef"
 	"github.com/ethsana/sana/pkg/keystore"
 	filekeystore "github.com/ethsana/sana/pkg/keystore/file"
 	memkeystore "github.com/ethsana/sana/pkg/keystore/mem"
 	"github.com/ethsana/sana/pkg/logging"
-	"github.com/ethsana/sana/pkg/mine/tee/sev"
-	"github.com/ethsana/sana/pkg/mine/tee/sgx"
 	"github.com/ethsana/sana/pkg/node"
 	"github.com/ethsana/sana/pkg/resolver/multiresolver"
 	"github.com/kardianos/service"
@@ -97,8 +96,8 @@ func (c *command) initStartCmd() (err error) {
 
 			fmt.Println(beeASCII)
 
-			if !sev.Ok() && !sgx.Ok() {
-				fmt.Printf("\033[0;31;40m%s\033[0m\n", `The operating environment of TEE is not prepared and cannot be run on the main network.`)
+			if !tee.Ok() {
+				fmt.Printf("\033[0;31;40m %s \033[0m\n", `The operating environment of TEE is not prepared and cannot be run on the main network.`)
 			}
 			// fmt.Printf("\n\nversion: %v - planned to be supported until %v, please follow https://ethsana.org/\n\n", bee.Version, endSupportDate())
 

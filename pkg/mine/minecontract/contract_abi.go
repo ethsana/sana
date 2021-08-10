@@ -92,6 +92,11 @@ const MineABI = `[
       },
       {
         "internalType": "uint256",
+        "name": "cate",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
         "name": "deadline",
         "type": "uint256"
       },
@@ -157,6 +162,11 @@ const MineABI = `[
         "internalType": "bytes32",
         "name": "node",
         "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "cate",
+        "type": "uint256"
       },
       {
         "internalType": "uint256",
