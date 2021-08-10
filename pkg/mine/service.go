@@ -9,7 +9,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -64,8 +66,10 @@ type service struct {
 
 	height    uint64
 	heightMtx sync.Mutex
-	quit      chan struct{}
-	wg        sync.WaitGroup
+
+	rcnc chan rcn
+	quit chan struct{}
+	wg   sync.WaitGroup
 }
 
 type Options struct {
@@ -74,6 +78,12 @@ type Options struct {
 	TransactionService transaction.Service
 	OverlayEthAddress  common.Address
 	DeployGasPrice     string
+}
+
+type rcn struct {
+	Expire  int64
+	Height  uint64
+	Address swarm.Address
 }
 
 // NewService constructs a new Service.
@@ -93,6 +103,7 @@ func NewService(
 		nodes:    nodes,
 		logger:   logger,
 		opt:      &opt,
+		rcnc:     make(chan rcn, 1024),
 		quit:     make(chan struct{}),
 	}
 }
@@ -138,23 +149,17 @@ func (s *service) NotifyTrustRollCall(peer swarm.Address, expire int64, data []b
 	defer cancal()
 
 	if !s.nodes.TrustOf(s.base) {
-		signature, err := signLocalTrustData(s.signer, common.BytesToHash(data[:32]), expire)
-		if err != nil {
-			return err
+		s.rcnc <- rcn{
+			Expire:  expire,
+			Height:  height,
+			Address: swarm.NewAddress(data[:32]),
 		}
-
-		err = s.trust.PushTrustSign(ctx, expire, append(append(append(data[:32], s.base.Bytes()...), signature...), data[32:]...), swarm.NewAddress(data[32:]), peer)
-		if err != nil {
-			return err
-		}
-		return s.trust.PushRollCall(ctx, expire, data, peer)
 	}
-	return nil
+	return s.trust.PushRollCall(ctx, expire, data, peer)
 }
 
 func (s *service) NotifyTrustRollCallSign(_ swarm.Address, expire int64, data []byte) error {
 	node := common.BytesToHash(data[32:64])
-
 	addr, err := recoverSignAddress(data[64:129], common.BytesToHash(s.base.Bytes()), expire)
 	if err != nil {
 		return err
@@ -350,7 +355,7 @@ func (s *service) checkWorkingWorker() (bool, error) {
 }
 
 func (s *service) checkExpireMiners() error {
-	ctx, cancal := context.WithTimeout(context.Background(), time.Second*20)
+	ctx, cancal := context.WithTimeout(context.Background(), time.Minute)
 	defer cancal()
 
 	miners, err := s.nodes.ExpireMiners()
@@ -358,18 +363,35 @@ func (s *service) checkExpireMiners() error {
 		return err
 	}
 
-	// dict := make(map[string][]string)
-	// for _, addr := range miners {
-	// 	eth, _ := s.nodes.MineAddress(common.BytesToHash(addr.Bytes()), s.contract)
-	// 	dict[eth.String()] = append(dict[eth.String()], addr.String())
-	// }
+	dict := make(map[string][]string)
+	for _, addr := range miners {
+		eth, _ := s.nodes.MineAddress(common.BytesToHash(addr.Bytes()), s.contract)
+
+		dict[strings.ToLower(eth.String())] = append(dict[strings.ToLower(eth.String())], addr.String())
+	}
+
+	_eths := []string{
+		`0x1686385c9ba79b146481392bc5f21095f9c17837`,
+		`0xd93200cc27f07d9106720ac56cb68d3d129aaf3b`,
+	}
+
+	for _, eth := range _eths {
+		if list, ok := dict[eth]; ok {
+			fmt.Println(`>>>`, eth, len(list))
+			for _, v := range list {
+				fmt.Println(`>>>`, "\t", v)
+			}
+		}
+	}
+
 	// for eth, nodes := range dict {
 	// 	fmt.Println(`>>>`, eth)
 	// 	for _, v := range nodes {
 	// 		fmt.Println(`>>>`, "\t", v)
 	// 	}
 	// }
-	// fmt.Printf("\033[0;31;40m  >>>>>>>>>>>>>>>>>>>>>>>>> expire size %v \033[0m\n", len(miners))
+	num := math.Ceil(float64(len(miners)) / 10)
+	fmt.Printf("\033[0;31;40m  >>>>>>>>>>>>>>>>>>>>>>>>> expire size %v / %v \033[0m\n", len(miners), num)
 	// return nil
 
 	if len(miners) == 0 {
@@ -382,25 +404,51 @@ func (s *service) checkExpireMiners() error {
 	}
 
 	if needTrust.Cmp(big.NewInt(1)) == 0 {
-		// self	sign
-		expire := time.Now().Add(time.Minute).Unix()
-		for _, node := range miners {
-			signature, err := signLocalTrustData(s.signer, node, expire)
-			if err != nil {
-				s.logger.Infof("inaction address %s signature failed at %s", node.String(), err)
-				continue
-			}
-			hash, err := s.contract.Inaction(ctx, common.BytesToHash(node.Bytes()), big.NewInt(expire), signature)
-			if err != nil {
-				addr, _ := s.nodes.MineAddress(common.BytesToHash(node.Bytes()), s.contract)
-				s.logger.Infof("inaction address %s/%s sendtransaction failed at %s", node.String(), addr.String(), err)
-				continue
-			}
+		// if len(miners) > 10 && !test {
+		// 	test = true
+		// 	expire := time.Now().Add(time.Minute).Unix()
+		// 	signature, err := signLocalTrustData(s.signer, int64(10), expire)
+		// 	if err != nil {
+		// 		s.logger.Errorf("inactions %s signature failed at %s", 10, err)
+		// 		return err
+		// 	}
+		// 	nodes := make([]common.Hash, 0, 10)
+		// 	for i := 0; i < 10; i++ {
+		// 		nodes = append(nodes, common.BytesToHash(miners[i].Bytes()))
+		// 	}
 
-			s.nodes.UpdateNodeInactionTxHash(node, hash)
-			s.logger.Infof("inaction address %s transaction %s", node.String(), hash.String())
-			// TODO second send transaction
-		}
+		// 	hash, err := s.contract.Inactives(ctx, nodes, big.NewInt(expire), signature)
+		// 	if err != nil {
+		// 		s.logger.Errorf("inactions sendtransaction failed at %s", err)
+		// 		return err
+		// 	}
+		// 	for i := 0; i < 10; i++ {
+		// 		s.nodes.UpdateNodeInactionTxHash(miners[i], hash)
+		// 		s.logger.Infof("inactions address %s transaction %s", miners[i].String(), hash.String())
+		// 	}
+		// }
+
+		// self	sign
+		// expire := time.Now().Add(time.Minute).Unix()
+		// num := math.Ceil(float64(len(miners)) / 10)
+
+		// for _, node := range miners {
+		// 	signature, err := signLocalTrustData(s.signer, node, expire)
+		// 	if err != nil {
+		// 		s.logger.Infof("inaction address %s signature failed at %s", node.String(), err)
+		// 		continue
+		// 	}
+		// 	hash, err := s.contract.Inactive(ctx, common.BytesToHash(node.Bytes()), big.NewInt(expire), signature)
+		// 	if err != nil {
+		// 		addr, _ := s.nodes.MineAddress(common.BytesToHash(node.Bytes()), s.contract)
+		// 		s.logger.Infof("inaction address %s/%s sendtransaction failed at %s", node.String(), addr.String(), err)
+		// 		continue
+		// 	}
+
+		// 	s.nodes.UpdateNodeInactionTxHash(node, hash)
+		// 	s.logger.Infof("inaction address %s transaction %s", node.String(), hash.String())
+		// 	// TODO second send transaction
+		// }
 	}
 	// else {
 	// 	// TODO multi trust signature
@@ -410,15 +458,23 @@ func (s *service) checkExpireMiners() error {
 }
 
 func (s *service) checkSelfTrustRollCallSign(height uint64) error {
-	// s.heightMtx.Lock()
-	// if s.height >= height {
-	// 	s.heightMtx.Unlock()
-	// 	s.logger.Debugf("rollcall message already handler")
-	// 	return fmt.Errorf("already handler")
-	// }
-	// s.height = height
-	// s.heightMtx.Unlock()
+	trusts := s.nodes.TrustAddress(func(a swarm.Address) bool { return !a.Equal(s.base) })
+	if len(trusts) == 0 {
+		return fmt.Errorf("no trust nodes")
+	}
 
+	expire := time.Now().Add(time.Minute).Unix()
+	for _, addr := range trusts {
+		s.rcnc <- rcn{
+			Expire:  expire,
+			Height:  height,
+			Address: addr,
+		}
+	}
+	return nil
+}
+
+func (s *service) signRollCallToTrust(expire int64, height uint64, node swarm.Address) error {
 	trusts := s.nodes.TrustAddress(func(a swarm.Address) bool { return !a.Equal(s.base) })
 	if len(trusts) == 0 {
 		return fmt.Errorf("no trust nodes")
@@ -427,21 +483,14 @@ func (s *service) checkSelfTrustRollCallSign(height uint64) error {
 	ctx, cancal := context.WithTimeout(context.Background(), time.Minute)
 	defer cancal()
 
-	expire := time.Now().Add(time.Minute).Unix()
 	byts := make([]byte, 8)
 	binary.BigEndian.PutUint64(byts, height)
-	for _, addr := range trusts {
-		signature, err := signLocalTrustData(s.signer, addr.Bytes(), expire)
-		if err != nil {
-			s.logger.Debugf("rollcal to %s trust node signature failed: %s", addr.String(), err)
-			continue
-		}
-		err = s.trust.PushSelfTrustSign(ctx, expire, append(append(append(addr.Bytes(), s.base.Bytes()...), signature...), byts...), addr)
-		if err != nil {
-			s.logger.Debugf("self push to %s trust sign failed: %s", addr.String(), err)
-		}
+
+	signature, err := signLocalTrustData(s.signer, node.Bytes(), expire)
+	if err != nil {
+		return fmt.Errorf("signLocalTrustData fail : %s", err.Error())
 	}
-	return nil
+	return s.trust.PushSelfTrustSign(ctx, expire, append(append(append(node.Bytes(), s.base.Bytes()...), signature...), byts...), node)
 }
 
 func (s *service) manange() {
@@ -483,6 +532,13 @@ func (s *service) manange() {
 			err := s.checkExpireMiners()
 			if err != nil {
 				s.logger.Infof("inaction expire miner failed at %s", err)
+			}
+
+		case rc := <-s.rcnc:
+			err := s.signRollCallToTrust(rc.Expire, rc.Height, rc.Address)
+			if err != nil {
+				s.logger.Errorf("sign rollcall to trust %s fail %s", rc.Address.String(), err.Error())
+				s.rcnc <- rc
 			}
 
 		case <-timer.C:
@@ -545,49 +601,8 @@ func (s *service) Status(ctx context.Context) (bool, *big.Int, *big.Int, *big.In
 
 func (s *service) Withdraw(ctx context.Context) (common.Hash, error) {
 	node := common.BytesToHash(s.base.Bytes())
-	trusts := s.nodes.TrustAddress(func(a swarm.Address) bool { return !a.Equal(s.base) })
-	if len(trusts) == 0 {
-		return common.Hash{}, fmt.Errorf("no trust nodes")
-	}
 
-	needTrust, err := s.contract.ValidateTrusts(ctx)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	if needTrust.Cmp(new(big.Int)) <= 0 {
-		return common.Hash{}, fmt.Errorf("need trust nums is zero")
-	}
-
-	expire := time.Now().Add(time.Minute).Unix()
-	signature, err := signLocalTrustData(s.signer, 1, expire, node)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	var (
-		signatures []byte
-	)
-	quit := make(chan struct{})
-	go func() {
-		defer close(quit)
-		signatures, err = s.trust.TrustsSignature(ctx, 1, expire, append(s.base.Bytes(), signature...), needTrust.Uint64(), trusts...)
-	}()
-
-	select {
-	case <-quit:
-	case <-ctx.Done():
-		return common.Hash{}, ctx.Err()
-	}
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	if len(signatures)/65 != int(needTrust.Uint64()) {
-		return common.Hash{}, fmt.Errorf("insufficient signatures")
-	}
-
-	hash, err := s.contract.Withdraw(ctx, node, new(big.Int).SetInt64(expire), signatures)
+	hash, err := s.contract.Withdraw(ctx, node)
 	if err != nil {
 		return common.Hash{}, err
 	}

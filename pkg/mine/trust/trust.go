@@ -297,6 +297,7 @@ func (s *Service) obtainWait() *wait {
 func (s *Service) releaseWait(wait *wait) {
 	s.waitsMtx.Lock()
 	defer s.waitsMtx.Unlock()
+	close(wait.C)
 	delete(s.waits, wait.Id)
 }
 
@@ -348,7 +349,6 @@ func (s *Service) TrustsSignature(ctx context.Context, op int32, expire int64, d
 			return nil, ctx.Err()
 		}
 	}
-
 }
 
 func (s *Service) PushSignatures(ctx context.Context, id, op int32, expire int64, data []byte, target swarm.Address, peer swarm.Address) error {

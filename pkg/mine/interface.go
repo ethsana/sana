@@ -68,14 +68,14 @@ type MineContract interface {
 	ExpireOf(ctx context.Context, node common.Hash) (*big.Int, error)
 	Reward(ctx context.Context, node common.Hash) (*big.Int, error)
 	CheckDeposit(ctx context.Context, node common.Hash) (bool, error)
-	Withdraw(ctx context.Context, node common.Hash, deadline *big.Int, sign []byte) (common.Hash, error)
+	Withdraw(ctx context.Context, node common.Hash) (common.Hash, error)
 	ValidateTrusts(ctx context.Context) (*big.Int, error)
 	Deposit(ctx context.Context, node common.Hash) (common.Hash, error)
 	WaitForDeposit(ctx context.Context, hash common.Hash) error
 	CashDeposit(ctx context.Context, node common.Hash) (common.Hash, error)
 	Active(ctx context.Context, node common.Hash, deadline *big.Int, signatures []byte) (common.Hash, error)
 	WaitForActive(ctx context.Context, hash common.Hash) error
-	Inaction(ctx context.Context, node common.Hash, deadline *big.Int, signatures []byte) (common.Hash, error)
+	Inactives(ctx context.Context, nodes []common.Hash, deadline *big.Int, signatures []byte) (common.Hash, error)
 	Dishonesty(ctx context.Context, node common.Hash, deadline *big.Int, signatures []byte) (common.Hash, error)
 }
 

@@ -184,8 +184,8 @@ func (s *service) ExpireOf(ctx context.Context, node common.Hash) (*big.Int, err
 	return balance, nil
 }
 
-func (s *service) Withdraw(ctx context.Context, node common.Hash, deadline *big.Int, sign []byte) (common.Hash, error) {
-	callData, err := minerABI.Pack(`withdraw`, node, deadline, sign)
+func (s *service) Withdraw(ctx context.Context, node common.Hash) (common.Hash, error) {
+	callData, err := minerABI.Pack(`withdraw`, node)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -312,19 +312,20 @@ func (s *service) WaitForActive(ctx context.Context, hash common.Hash) error {
 	return nil
 }
 
-func (s service) Inaction(ctx context.Context, node common.Hash, deadline *big.Int, signatures []byte) (common.Hash, error) {
-	callData, err := minerABI.Pack("inactive", node, deadline, signatures)
+
+func (s *service) Inactives(ctx context.Context, nodes []common.Hash, deadline *big.Int, signatures []byte) (common.Hash, error) {
+	callData, err := minerABI.Pack("inactives", nodes, deadline, signatures)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
 	request := &transaction.TxRequest{
-		To:          &s.address,
-		Data:        callData,
-		GasPrice:    sctx.GetGasPrice(ctx),
-		GasLimit:    200000,
+		To:       &s.address,
+		Data:     callData,
+		GasPrice: sctx.GetGasPrice(ctx),
+		// GasLimit:    200000,
 		Value:       big.NewInt(0),
-		Description: "inactive",
+		Description: "inactives",
 	}
 
 	return s.transactionService.Send(ctx, request)

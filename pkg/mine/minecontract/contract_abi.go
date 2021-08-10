@@ -2,17 +2,6 @@ package minecontract
 
 const MineABI = `[
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
     "anonymous": false,
     "inputs": [
       {
@@ -168,9 +157,24 @@ const MineABI = `[
         "internalType": "bytes32",
         "name": "node",
         "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "price",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signatrues",
+        "type": "bytes"
       }
     ],
-    "name": "deposit",
+    "name": "depositWithPrice",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -243,14 +247,32 @@ const MineABI = `[
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "height",
-        "type": "uint256"
+        "internalType": "bytes32[]",
+        "name": "nodes",
+        "type": "bytes32[]"
       },
       {
         "internalType": "uint256",
-        "name": "rate",
+        "name": "deadline",
         "type": "uint256"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signatrues",
+        "type": "bytes"
+      }
+    ],
+    "name": "inactives",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
       }
     ],
     "name": "init",
@@ -365,6 +387,24 @@ const MineABI = `[
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "height",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "rate",
+        "type": "uint256"
+      }
+    ],
+    "name": "notifyMine",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -551,6 +591,19 @@ const MineABI = `[
     "inputs": [
       {
         "internalType": "bytes32",
+        "name": "node",
+        "type": "bytes32"
+      }
+    ],
+    "name": "untrust",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
         "name": "",
         "type": "bytes32"
       }
@@ -585,16 +638,6 @@ const MineABI = `[
         "internalType": "bytes32",
         "name": "node",
         "type": "bytes32"
-      },
-      {
-        "internalType": "uint256",
-        "name": "deadline",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes",
-        "name": "signatrues",
-        "type": "bytes"
       }
     ],
     "name": "withdraw",
