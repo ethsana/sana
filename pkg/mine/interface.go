@@ -70,7 +70,7 @@ type MineContract interface {
 	CheckDeposit(ctx context.Context, node common.Hash) (bool, error)
 	Withdraw(ctx context.Context, node common.Hash) (common.Hash, error)
 	ValidateTrusts(ctx context.Context) (*big.Int, error)
-	Deposit(ctx context.Context, node common.Hash) (common.Hash, error)
+	Deposit(ctx context.Context, node common.Hash, price, deadline *big.Int, signatrues []byte) (common.Hash, error)
 	WaitForDeposit(ctx context.Context, hash common.Hash) error
 	CashDeposit(ctx context.Context, node common.Hash) (common.Hash, error)
 	Active(ctx context.Context, node common.Hash, deadline *big.Int, signatures []byte) (common.Hash, error)
@@ -80,9 +80,13 @@ type MineContract interface {
 }
 
 type Trust interface {
-	TrustsSignature(ctx context.Context, op int32, expire int64, data []byte, num uint64, peer ...swarm.Address) ([]byte, error)
-	PushSignatures(ctx context.Context, id, op int32, expire int64, data []byte, target swarm.Address, peer swarm.Address) error
+	TrustsSignature(ctx context.Context, expire int64, data []byte, num uint64, peer ...swarm.Address) ([]byte, error)
+	PushSignatures(ctx context.Context, id uint32, expire int64, data []byte, target swarm.Address, peer swarm.Address) error
 	PushTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address, peer swarm.Address) error
 	PushSelfTrustSign(ctx context.Context, expire int64, data []byte, target swarm.Address) error
 	PushRollCall(ctx context.Context, expire int64, data []byte, skips ...swarm.Address) error
+}
+
+type Oracle interface {
+	Price() *big.Int
 }

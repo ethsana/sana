@@ -6,6 +6,7 @@ package trust
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"sync"
 	"time"
@@ -23,12 +24,13 @@ const (
 	protocolName       = "rollcall"
 	protocolVersion    = "1.0.0"
 	streamSign         = "sign"
+	streamSignRet      = "signret"
 	streamRollCall     = "rollcall"
 	streamRollCallSign = "rollcallsign"
 )
 
 type MineObserver interface {
-	NotifyTrustSignature(peer swarm.Address, id, op int32, expire int64, data []byte) error
+	NotifyTrustSignature(peer swarm.Address, expire int64, data []byte) error
 	NotifyTrustRollCall(peer swarm.Address, expire int64, data []byte) error
 	NotifyTrustRollCallSign(peer swarm.Address, expire int64, data []byte) error
 }
@@ -39,7 +41,7 @@ type Service struct {
 	logger   logging.Logger
 	topology topology.Driver
 	observer MineObserver
-	waits    map[int32]*wait
+	waits    map[uint32]*wait
 	waitsMtx sync.Mutex
 }
 
@@ -48,7 +50,7 @@ func New(streamer p2p.Streamer, logger logging.Logger, base swarm.Address) *Serv
 		base:     base,
 		streamer: streamer,
 		logger:   logger,
-		waits:    make(map[int32]*wait),
+		waits:    make(map[uint32]*wait),
 	}
 }
 
@@ -60,6 +62,10 @@ func (s *Service) Protocol() p2p.ProtocolSpec {
 			{
 				Name:    streamSign,
 				Handler: s.handlerSign,
+			},
+			{
+				Name:    streamSignRet,
+				Handler: s.handlerSignRet,
 			},
 			{
 				Name:    streamRollCall,
@@ -91,7 +97,7 @@ func (s *Service) handlerSign(ctx context.Context, p p2p.Peer, stream p2p.Stream
 		}
 	}()
 
-	var req pb.TrustSign
+	var req pb.Trust
 	if err := r.ReadMsgWithContext(ctx, &req); err != nil {
 		s.logger.Debugf("could not receive rollcall/sign from peer %v", p.Address)
 		return fmt.Errorf("read request from peer %v: %w", p.Address, err)
@@ -101,22 +107,12 @@ func (s *Service) handlerSign(ctx context.Context, p p2p.Peer, stream p2p.Stream
 		return fmt.Errorf("request is expire from peer %s", p.Address)
 	}
 
-	target := swarm.NewAddress(req.Peer)
+	target := swarm.NewAddress(req.Stream[:32])
 	if target.Equal(s.base) {
-		if req.Result {
-			// TODO To be optimized
-			s.waitsMtx.Lock()
-			if w, ok := s.waits[req.Id]; ok {
-				w.C <- &req
-			}
-			s.waitsMtx.Unlock()
-
-		} else if s.observer != nil {
-			err = s.observer.NotifyTrustSignature(p.Address, req.Id, req.Op, req.Expire, req.Data)
-			return err
+		if s.observer == nil {
+			return fmt.Errorf("observer is nil")
 		}
-
-		return nil
+		return s.observer.NotifyTrustSignature(p.Address, req.Expire, req.Stream[32:])
 	} else {
 	retry:
 		peer, err := s.topology.ClosestPeer(target, false, p.Address)
@@ -148,7 +144,73 @@ func (s *Service) handlerSign(ctx context.Context, p p2p.Peer, stream p2p.Stream
 			}
 		}()
 
-		s.logger.Tracef("sending rollcall/sign to peer %v to %v with %s", peer, target, common.BytesToHash(req.Data[:32]).String())
+		s.logger.Tracef("sending rollcall/sign to peer %v to %v with %s", peer, target, common.BytesToHash(req.Stream[36:68]).String())
+		w := protobuf.NewWriter(stream)
+		return w.WriteMsgWithContext(ctx, &req)
+	}
+}
+
+func (s *Service) handlerSignRet(ctx context.Context, p p2p.Peer, stream p2p.Stream) (err error) {
+	r := protobuf.NewReader(stream)
+	defer func() {
+		if err != nil {
+			_ = stream.Reset()
+		} else {
+			_ = stream.FullClose()
+		}
+	}()
+
+	var req pb.Trust
+	if err := r.ReadMsgWithContext(ctx, &req); err != nil {
+		s.logger.Debugf("could not receive rollcall/signret from peer %v", p.Address)
+		return fmt.Errorf("read request from peer %v: %w", p.Address, err)
+	}
+
+	if req.Expire < time.Now().Unix() {
+		return fmt.Errorf("request is expire from peer %s", p.Address)
+	}
+
+	target := swarm.NewAddress(req.Stream[:32])
+	if target.Equal(s.base) {
+		id := binary.BigEndian.Uint32(req.Stream[32:36])
+		s.waitsMtx.Lock()
+		if w, ok := s.waits[id]; ok {
+			w.C <- &req
+		}
+		s.waitsMtx.Unlock()
+		return nil
+	} else {
+	retry:
+		peer, err := s.topology.ClosestPeer(target, false, p.Address)
+		if err != nil {
+			return err
+		}
+		if peer.Equal(p.Address) {
+			return p2p.ErrPeerNotFound
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamSignRet)
+		if err != nil {
+			if err == p2p.ErrPeerNotFound {
+				goto retry
+			}
+			return err
+		}
+		defer func() {
+			if err != nil {
+				_ = stream.Reset()
+			} else {
+				go stream.FullClose()
+			}
+		}()
+
+		s.logger.Tracef("sending rollcall/signret to peer %v to %v with %s", peer, target, common.BytesToHash(req.Stream[36:68]).String())
 		w := protobuf.NewWriter(stream)
 		return w.WriteMsgWithContext(ctx, &req)
 	}
@@ -242,7 +304,7 @@ func (s *Service) handlerRollCallSign(ctx context.Context, p p2p.Peer, stream p2
 	}
 }
 
-func (s *Service) trustSignature(ctx context.Context, id, op int32, expire int64, data []byte, target swarm.Address) error {
+func (s *Service) trustSignature(ctx context.Context, id uint32, expire int64, data []byte, target swarm.Address) error {
 retry:
 	peer, err := s.topology.ClosestPeer(target, false)
 	if err != nil {
@@ -272,24 +334,25 @@ retry:
 
 	s.logger.Tracef("sending rollcall/sign to peer %v", peer)
 	w := protobuf.NewWriter(stream)
-	return w.WriteMsgWithContext(ctx, &pb.TrustSign{
-		Id:     id,
-		Op:     op,
-		Data:   data,
-		Peer:   target.Bytes(),
+
+	byts := make([]byte, 4)
+	binary.BigEndian.PutUint32(byts, uint32(id))
+
+	return w.WriteMsgWithContext(ctx, &pb.Trust{
 		Expire: expire,
+		Stream: append(target.Bytes(), append(byts, data...)...), // target id data
 	})
 }
 
 type wait struct {
-	Id int32
-	C  chan *pb.TrustSign
+	Id uint32
+	C  chan *pb.Trust
 }
 
 func (s *Service) obtainWait() *wait {
 	s.waitsMtx.Lock()
 	defer s.waitsMtx.Unlock()
-	w := &wait{Id: int32(time.Now().UnixNano()), C: make(chan *pb.TrustSign)}
+	w := &wait{Id: uint32(time.Now().UnixNano()), C: make(chan *pb.Trust)}
 	s.waits[w.Id] = w
 	return w
 }
@@ -301,7 +364,7 @@ func (s *Service) releaseWait(wait *wait) {
 	delete(s.waits, wait.Id)
 }
 
-func (s *Service) TrustsSignature(ctx context.Context, op int32, expire int64, data []byte, needTrust uint64, peers ...swarm.Address) ([]byte, error) {
+func (s *Service) TrustsSignature(ctx context.Context, expire int64, data []byte, needTrust uint64, trusts ...swarm.Address) ([]byte, error) {
 	if s.topology == nil {
 		return nil, fmt.Errorf("topoloy is not available")
 	}
@@ -313,8 +376,8 @@ func (s *Service) TrustsSignature(ctx context.Context, op int32, expire int64, d
 	w := s.obtainWait()
 	defer s.releaseWait(w)
 	var count uint64
-	for _, peer := range peers {
-		err := s.trustSignature(ctx, w.Id, op, expire, data, peer)
+	for _, trust := range trusts {
+		err := s.trustSignature(ctx, w.Id, expire, data, trust)
 		if err != nil {
 			s.logger.Debugf(`trustSignature failed %s`, err)
 			continue
@@ -330,7 +393,7 @@ func (s *Service) TrustsSignature(ctx context.Context, op int32, expire int64, d
 		return nil, fmt.Errorf("send a trusted node smaller than the target")
 	}
 
-	list := make([]*pb.TrustSign, 0, count)
+	list := make([]*pb.Trust, 0, count)
 	for {
 		select {
 		case ts := <-w.C:
@@ -339,7 +402,7 @@ func (s *Service) TrustsSignature(ctx context.Context, op int32, expire int64, d
 			if needTrust == 0 {
 				byts := make([]byte, 0)
 				for _, ts := range list {
-					byts = append(byts, ts.Data...)
+					byts = append(byts, ts.Stream[36:]...)
 				}
 
 				return byts, nil
@@ -351,9 +414,9 @@ func (s *Service) TrustsSignature(ctx context.Context, op int32, expire int64, d
 	}
 }
 
-func (s *Service) PushSignatures(ctx context.Context, id, op int32, expire int64, data []byte, target swarm.Address, peer swarm.Address) error {
+func (s *Service) PushSignatures(ctx context.Context, id uint32, expire int64, data []byte, target swarm.Address, peer swarm.Address) error {
 retry:
-	stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamSign)
+	stream, err := s.streamer.NewStream(ctx, peer, nil, protocolName, protocolVersion, streamSignRet)
 	if err != nil {
 		select {
 		case <-ctx.Done():
@@ -378,15 +441,15 @@ retry:
 		}
 	}()
 
-	s.logger.Tracef("sending rollcall/sign to peer %v", target)
+	s.logger.Tracef("sending rollcall/signret to peer %v", target)
 	w := protobuf.NewWriter(stream)
-	return w.WriteMsgWithContext(ctx, &pb.TrustSign{
-		Id:     id,
-		Op:     op,
-		Data:   data,
-		Peer:   target.Bytes(),
+
+	byts := make([]byte, 4)
+	binary.BigEndian.PutUint32(byts, id)
+
+	return w.WriteMsgWithContext(ctx, &pb.Trust{
 		Expire: expire,
-		Result: true,
+		Stream: append(target.Bytes(), append(byts, data...)...), //target id data
 	})
 }
 

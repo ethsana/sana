@@ -236,8 +236,8 @@ func (s *service) ValidateTrusts(ctx context.Context) (*big.Int, error) {
 	return ret, nil
 }
 
-func (s *service) Deposit(ctx context.Context, node common.Hash) (common.Hash, error) {
-	callData, err := minerABI.Pack("deposit", node)
+func (s *service) Deposit(ctx context.Context, node common.Hash, price *big.Int, deadline *big.Int, signatures []byte) (common.Hash, error) {
+	callData, err := minerABI.Pack("deposit", node, price, deadline, signatures)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -311,7 +311,6 @@ func (s *service) WaitForActive(ctx context.Context, hash common.Hash) error {
 	}
 	return nil
 }
-
 
 func (s *service) Inactives(ctx context.Context, nodes []common.Hash, deadline *big.Int, signatures []byte) (common.Hash, error) {
 	callData, err := minerABI.Pack("inactives", nodes, deadline, signatures)

@@ -41,6 +41,7 @@ import (
 	"github.com/ethsana/sana/pkg/mine/minecontract"
 	"github.com/ethsana/sana/pkg/mine/nodeservice"
 	"github.com/ethsana/sana/pkg/mine/nodestore"
+	"github.com/ethsana/sana/pkg/mine/oracle"
 	"github.com/ethsana/sana/pkg/mine/trust"
 	"github.com/ethsana/sana/pkg/netstore"
 	"github.com/ethsana/sana/pkg/p2p"
@@ -429,7 +430,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		postageContractService postagecontract.Interface
 		batchSvc               postage.EventUpdater
 		eventListener          postage.Listener
-		mineSvc                mine.Service
+		mineSvr                mine.Service
 	)
 
 	var postageSyncStart uint64 = 0
@@ -490,7 +491,8 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 				return nil, err
 			}
 
-			mineSvc = mine.NewService(swarmAddress, mineService, nodeSvc, signer, logger, warmupTime, mine.Options{
+			oracleSvr := oracle.New()
+			mineSvr = mine.NewService(swarmAddress, mineService, nodeSvc, signer, oracleSvr, logger, warmupTime, mine.Options{
 				Store:              stateStore,
 				Backend:            swapBackend,
 				TransactionService: transactionService,
@@ -498,7 +500,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 				DeployGasPrice:     o.DeployGasPrice,
 			})
 
-			b.mineCloser = mineSvc
+			b.mineCloser = mineSvr
 		}
 	}
 
@@ -564,9 +566,9 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		if err = p2ps.AddProtocol(trust.Protocol()); err != nil {
 			return nil, fmt.Errorf("rollcall service: %w", err)
 		}
-		mineSvc.SetTrust(trust)
+		mineSvr.SetTrust(trust)
 		trust.SetTopology(kad)
-		trust.SetMineObserver(mineSvc)
+		trust.SetMineObserver(mineSvr)
 	}
 
 	if batchSvc != nil {
@@ -585,8 +587,8 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 
 	}
 
-	if o.MineEnabled && mineSvc != nil {
-		syncedChan, err := mineSvc.Start(postageSyncStart)
+	if o.MineEnabled && mineSvr != nil {
+		syncedChan, err := mineSvr.Start(postageSyncStart)
 		if err != nil {
 			return nil, fmt.Errorf("unable to start mine service: %w", err)
 		}
@@ -845,7 +847,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		}
 
 		// inject dependencies and configure full debug api http path routes
-		debugAPIService.Configure(swarmAddress, p2ps, pingPong, kad, lightNodes, storer, tagService, acc, pseudosettleService, o.SwapEnable, swapService, chequebookService, batchStore, post, postageContractService, o.MineEnabled, mineSvc)
+		debugAPIService.Configure(swarmAddress, p2ps, pingPong, kad, lightNodes, storer, tagService, acc, pseudosettleService, o.SwapEnable, swapService, chequebookService, batchStore, post, postageContractService, o.MineEnabled, mineSvr)
 	}
 
 	if err := kad.Start(p2pCtx); err != nil {

@@ -174,7 +174,7 @@ const MineABI = `[
         "type": "bytes"
       }
     ],
-    "name": "depositWithPrice",
+    "name": "deposit",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
