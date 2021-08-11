@@ -102,7 +102,18 @@ func NewService(
 
 	device, err := tee.DeviceID()
 	if err != nil {
-		logger.Infof("get device id fail: %s", err.Error())
+		logger.Errorf("get device id fail: %s", err.Error())
+	} else {
+		platform := "Unknown"
+		switch device.Platform {
+		case tee.AMD:
+			platform = "AMD Platform"
+
+		case tee.Intel:
+			platform = "Intel Platform"
+		}
+
+		logger.Infof("using the %s Tee device", platform)
 	}
 
 	return &service{
