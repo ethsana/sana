@@ -13,7 +13,7 @@ var (
 	// start block
 	ropstenStartBlock = uint64(10635691)
 	goerliStartBlock  = uint64(5167986)
-	xdaiStartBlock    = uint64(16515648)
+	xdaiStartBlock    = uint64(17525957)
 	devStartBlock     = uint64(0)
 	// factory address
 	ropstenContractAddress = common.HexToAddress("0x28598Fd5BEe25E53bC90Cf91B9501F7124f0d5EF")
