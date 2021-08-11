@@ -15,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethersphere/go-storage-incentives-abi/postageabi"
 	"github.com/ethersphere/go-sw3-abi/sw3abi"
 	"github.com/ethsana/sana/pkg/postage"
 	"github.com/ethsana/sana/pkg/sctx"
@@ -25,7 +24,7 @@ import (
 var (
 	BucketDepth = uint8(16)
 
-	postageStampABI   = parseABI(postageabi.PostageStampABIv0_3_0)
+	postageStampABI   = parseABI(PostageStampABIv0_4_0)
 	erc20ABI          = parseABI(sw3abi.ERC20ABIv0_3_1)
 	batchCreatedTopic = postageStampABI.Events["BatchCreated"].ID
 
@@ -223,7 +222,7 @@ func parseABI(json string) abi.ABI {
 }
 
 func LookupERC20Address(ctx context.Context, transactionService transaction.Service, postageContractAddress common.Address) (common.Address, error) {
-	callData, err := postageStampABI.Pack("bzzToken")
+	callData, err := postageStampABI.Pack("sanaToken")
 	if err != nil {
 		return common.Address{}, err
 	}
