@@ -134,6 +134,7 @@ type Options struct {
 	WelcomeMessage             string
 	Bootnodes                  []string
 	CORSAllowedOrigins         []string
+	DashboardAuthorization     string
 	Logger                     logging.Logger
 	Standalone                 bool
 	TracingEnabled             bool
@@ -250,7 +251,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 			return nil, fmt.Errorf("eth address: %w", err)
 		}
 		// set up basic debug api endpoints for debugging and /health endpoint
-		debugAPIService = debugapi.New(*publicKey, pssPrivateKey.PublicKey, overlayEthAddress, logger, tracer, o.CORSAllowedOrigins, transactionService)
+		debugAPIService = debugapi.New(*publicKey, pssPrivateKey.PublicKey, overlayEthAddress, logger, tracer, o.CORSAllowedOrigins, o.DashboardAuthorization, transactionService)
 
 		debugAPIListener, err := net.Listen("tcp", o.DebugAPIAddr)
 		if err != nil {
@@ -772,6 +773,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		steward := steward.New(storer, traversalService, pushSyncProtocol)
 		apiService = api.New(tagService, ns, multiResolver, pssService, traversalService, pinningService, feedFactory, post, postageContractService, steward, signer, logger, tracer, api.Options{
 			CORSAllowedOrigins: o.CORSAllowedOrigins,
+			Authorization:      o.DashboardAuthorization,
 			GatewayMode:        o.GatewayMode,
 			WsPingPeriod:       60 * time.Second,
 		})

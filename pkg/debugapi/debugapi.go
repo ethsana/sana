@@ -60,6 +60,7 @@ type Service struct {
 	lightNodes         *lightnode.Container
 	minerEnabled       bool
 	mine               mine.Service
+	authorization      string
 	// handler is changed in the Configure method
 	handler   http.Handler
 	handlerMu sync.RWMutex
@@ -69,7 +70,7 @@ type Service struct {
 // to expose /addresses, /health endpoints, Go metrics and pprof. It is useful to expose
 // these endpoints before all dependencies are configured and injected to have
 // access to basic debugging tools and /health endpoint.
-func New(publicKey, pssPublicKey ecdsa.PublicKey, ethereumAddress common.Address, logger logging.Logger, tracer *tracing.Tracer, corsAllowedOrigins []string, transaction transaction.Service) *Service {
+func New(publicKey, pssPublicKey ecdsa.PublicKey, ethereumAddress common.Address, logger logging.Logger, tracer *tracing.Tracer, corsAllowedOrigins []string, authorization string, transaction transaction.Service) *Service {
 	s := new(Service)
 	s.publicKey = publicKey
 	s.pssPublicKey = pssPublicKey
@@ -79,6 +80,7 @@ func New(publicKey, pssPublicKey ecdsa.PublicKey, ethereumAddress common.Address
 	s.corsAllowedOrigins = corsAllowedOrigins
 	s.metricsRegistry = newMetricsRegistry()
 	s.transaction = transaction
+	s.authorization = authorization
 
 	s.setRouter(s.newBasicRouter())
 

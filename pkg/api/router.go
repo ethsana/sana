@@ -158,6 +158,15 @@ func (s *server) setupRouting() {
 
 	s.Handler = web.ChainHandlers(
 		httpaccess.NewHTTPAccessLogHandler(s.logger, logrus.InfoLevel, s.tracer, "api access"),
+		func(h http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if s.Authorization != `` && !strings.EqualFold(r.Header.Get(`Authorization`), s.Authorization) {
+					jsonhttp.InternalServerError(w, fmt.Errorf("authorization failed"))
+					return
+				}
+				h.ServeHTTP(w, r)
+			})
+		},
 		handlers.CompressHandler,
 		// todo: add recovery handler
 		s.responseCodeMetricsHandler,

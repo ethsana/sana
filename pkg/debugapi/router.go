@@ -224,6 +224,7 @@ func (s *Service) setRouter(router http.Handler) {
 	h := http.NewServeMux()
 	h.Handle("/", web.ChainHandlers(
 		httpaccess.NewHTTPAccessLogHandler(s.logger, logrus.InfoLevel, s.tracer, "debug api access"),
+		s.authorizationHandler,
 		handlers.CompressHandler,
 		s.corsHandler,
 		web.NoCacheHeadersHandler,
