@@ -69,7 +69,9 @@ const (
 	optionNameBlockTime                 = "block-time"
 	optionWarmUpTime                    = "warmup-time"
 	optionNameMine                      = "mine"
-	optionNameMineContractAddress       = "mine-adress"
+	optionNameMineContractAddress       = "mine-address"
+	optionNameUniswapEndpoint           = "uniswap-endpoint"
+	optionNameUniswapV2Pair             = "uniswap-v2pair"
 )
 
 func init() {

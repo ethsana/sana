@@ -492,7 +492,7 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 				return nil, err
 			}
 
-			oracleSvr := oracle.New()
+			oracleSvr := oracle.New(swapBackend, transactionService, mineContractAddress)
 			mineSvr = mine.NewService(swarmAddress, mineService, nodeSvc, signer, oracleSvr, logger, warmupTime, mine.Options{
 				Store:              stateStore,
 				Backend:            swapBackend,
