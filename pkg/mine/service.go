@@ -279,7 +279,7 @@ func (s *service) mortgageMiner(ctx context.Context) error {
 			return err
 		}
 		if ethBalance.Cmp(minimumEth) < 0 {
-			return fmt.Errorf("insufficient ETH and gas payment")
+			return fmt.Errorf("insufficient xDai and gas payment")
 		}
 
 		erc20Balance, err := erc20Service.BalanceOf(ctx, o.OverlayEthAddress)

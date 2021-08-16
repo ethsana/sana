@@ -66,9 +66,9 @@ func checkBalance(
 			}
 
 			if insufficientETH && insufficientERC20 {
-				logger.Warningf("cannot continue until there is sufficient ETH (for Gas) and at least %d SANA available on %x", neededERC20, overlayEthAddress)
+				logger.Warningf("cannot continue until there is sufficient xDai (for Gas) and at least %d SANA available on %x", neededERC20, overlayEthAddress)
 			} else if insufficientETH {
-				logger.Warningf("cannot continue until there is sufficient ETH (for Gas) available on %x", overlayEthAddress)
+				logger.Warningf("cannot continue until there is sufficient xDai (for Gas) available on %x", overlayEthAddress)
 			} else {
 				logger.Warningf("cannot continue until there is at least %d SANA available on %x", neededERC20, overlayEthAddress)
 			}
@@ -81,7 +81,7 @@ func checkBalance(
 				if insufficientERC20 {
 					return fmt.Errorf("insufficient SANA for initial deposit")
 				} else {
-					return fmt.Errorf("insufficient ETH for initial deposit")
+					return fmt.Errorf("insufficient xDai for initial deposit")
 				}
 			}
 			continue
