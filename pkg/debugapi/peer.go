@@ -100,6 +100,23 @@ func (s *Service) blocklistedPeersHandler(w http.ResponseWriter, r *http.Request
 	})
 }
 
+type underlaysResponse struct {
+	Underlays []string `json:"underlays"`
+}
+
+func (s *Service) underlaysHandler(w http.ResponseWriter, r *http.Request) {
+	addrs, err := s.addressbook.Addresses()
+	if err != nil {
+		jsonhttp.InternalServerError(w, err)
+	}
+
+	list := make([]string, 0, len(addrs))
+	for _, addr := range addrs {
+		list = append(list, addr.Underlay.String())
+	}
+	jsonhttp.OK(w, underlaysResponse{Underlays: list})
+}
+
 func mapPeers(peers []p2p.Peer) (out []Peer) {
 	for _, peer := range peers {
 		out = append(out, Peer{

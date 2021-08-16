@@ -105,6 +105,9 @@ func (s *Service) newRouter() *mux.Router {
 	router.Handle("/blocklist", jsonhttp.MethodHandler{
 		"GET": http.HandlerFunc(s.blocklistedPeersHandler),
 	})
+	router.Handle("/underlays", jsonhttp.MethodHandler{
+		"GET": http.HandlerFunc(s.underlaysHandler),
+	})
 
 	router.Handle("/peers/{address}", jsonhttp.MethodHandler{
 		"DELETE": http.HandlerFunc(s.peerDisconnectHandler),

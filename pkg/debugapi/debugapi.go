@@ -14,6 +14,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethsana/sana/pkg/accounting"
+	"github.com/ethsana/sana/pkg/addressbook"
 	"github.com/ethsana/sana/pkg/logging"
 	"github.com/ethsana/sana/pkg/mine"
 	"github.com/ethsana/sana/pkg/p2p"
@@ -61,6 +62,7 @@ type Service struct {
 	minerEnabled       bool
 	mine               mine.Service
 	authorization      string
+	addressbook        addressbook.Interface
 	// handler is changed in the Configure method
 	handler   http.Handler
 	handlerMu sync.RWMutex
@@ -70,11 +72,12 @@ type Service struct {
 // to expose /addresses, /health endpoints, Go metrics and pprof. It is useful to expose
 // these endpoints before all dependencies are configured and injected to have
 // access to basic debugging tools and /health endpoint.
-func New(publicKey, pssPublicKey ecdsa.PublicKey, ethereumAddress common.Address, logger logging.Logger, tracer *tracing.Tracer, corsAllowedOrigins []string, authorization string, transaction transaction.Service) *Service {
+func New(publicKey, pssPublicKey ecdsa.PublicKey, ethereumAddress common.Address, addressbook addressbook.Interface, logger logging.Logger, tracer *tracing.Tracer, corsAllowedOrigins []string, authorization string, transaction transaction.Service) *Service {
 	s := new(Service)
 	s.publicKey = publicKey
 	s.pssPublicKey = pssPublicKey
 	s.ethereumAddress = ethereumAddress
+	s.addressbook = addressbook
 	s.logger = logger
 	s.tracer = tracer
 	s.corsAllowedOrigins = corsAllowedOrigins
