@@ -68,9 +68,8 @@ const (
 	optionNamePriceOracleAddress         = "price-oracle-address"
 	optionNameBlockTime                  = "block-time"
 	optionWarmUpTime                     = "warmup-time"
-	optionNameMainNet                    = "mainnet"
 	optionNameMine                       = "mine"
-	optionNameMineContractAddress        = "mine-address"
+	optionNameMineContractAddress        = "mine-adress"
 )
 
 func init() {
@@ -247,7 +246,6 @@ func (c *command) setAllFlags(cmd *cobra.Command) {
 	cmd.Flags().Uint64(optionNameBlockTime, 15, "chain block time")
 	cmd.Flags().String(optionNameSwapDeploymentGasPrice, "", "gas price in wei to use for deployment and funding")
 	cmd.Flags().Duration(optionWarmUpTime, time.Minute*20, "time to warmup the node before pull/push protocols can be kicked off.")
-	cmd.Flags().Bool(optionNameMainNet, false, "triggers connect to main net bootnodes.")
 	cmd.Flags().Bool(optionNameMine, true, "enable sana miner")
 	cmd.Flags().String(optionNameMineContractAddress, "", "mine contract address")
 }

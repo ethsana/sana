@@ -120,17 +120,7 @@ func (c *command) initStartCmd() (err error) {
 				return errors.New("boot node must be started as a full node")
 			}
 
-			mainnet := c.config.GetBool(optionNameMainNet)
 			networkID := c.config.GetUint64(optionNameNetworkID)
-
-			if mainnet {
-				userHasSetNetworkID := c.config.IsSet(optionNameNetworkID)
-				if userHasSetNetworkID && networkID != 1 {
-					return errors.New("provided network ID does not match mainnet")
-				}
-				networkID = 1
-			}
-
 			bootnodes := c.config.GetStringSlice(optionNameBootnodes)
 			blockTime := c.config.GetUint64(optionNameBlockTime)
 
