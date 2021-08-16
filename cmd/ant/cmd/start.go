@@ -134,7 +134,7 @@ func (c *command) initStartCmd() (err error) {
 				networkConfig.blockTime = blockTime
 			}
 
-			b, err := node.NewBee(c.config.GetString(optionNameP2PAddr), signerConfig.publicKey, signerConfig.signer, networkID, logger, signerConfig.libp2pPrivateKey, signerConfig.pssPrivateKey, &node.Options{
+			a, err := node.NewAnt(c.config.GetString(optionNameP2PAddr), signerConfig.publicKey, signerConfig.signer, networkID, logger, signerConfig.libp2pPrivateKey, signerConfig.pssPrivateKey, &node.Options{
 				DataDir:                  c.config.GetString(optionNameDataDir),
 				CacheCapacity:            c.config.GetUint64(optionNameCacheCapacity),
 				DBOpenFilesLimit:         c.config.GetUint64(optionNameDBOpenFilesLimit),
@@ -205,7 +205,7 @@ func (c *command) initStartCmd() (err error) {
 						ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 						defer cancel()
 
-						if err := b.Shutdown(ctx); err != nil {
+						if err := a.Shutdown(ctx); err != nil {
 							logger.Errorf("shutdown: %v", err)
 						}
 					}()
@@ -223,8 +223,8 @@ func (c *command) initStartCmd() (err error) {
 			if isWindowsService {
 				s, err := service.New(p, &service.Config{
 					Name:        serviceName,
-					DisplayName: "Bee",
-					Description: "Bee, Swarm client.",
+					DisplayName: "Ant",
+					Description: "Ant, Sana client.",
 				})
 				if err != nil {
 					return err

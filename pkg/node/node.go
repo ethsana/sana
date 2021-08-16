@@ -86,7 +86,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type Bee struct {
+type Ant struct {
 	p2pService               io.Closer
 	p2pHalter                p2p.Halter
 	p2pCancel                context.CancelFunc
@@ -171,7 +171,7 @@ const (
 	basePrice   = 10000
 )
 
-func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, networkID uint64, logger logging.Logger, libp2pPrivateKey, pssPrivateKey *ecdsa.PrivateKey, o *Options) (b *Bee, err error) {
+func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, networkID uint64, logger logging.Logger, libp2pPrivateKey, pssPrivateKey *ecdsa.PrivateKey, o *Options) (b *Ant, err error) {
 	tracer, tracerCloser, err := tracing.NewTracer(&tracing.Options{
 		Enabled:     o.TracingEnabled,
 		Endpoint:    o.TracingEndpoint,
@@ -197,7 +197,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		warmupTime = 0
 	}
 
-	b = &Bee{
+	b = &Ant{
 		p2pCancel:      p2pCancel,
 		errorLogWriter: logger.WriterLevel(logrus.ErrorLevel),
 		tracerCloser:   tracerCloser,
@@ -860,7 +860,7 @@ func NewBee(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 	return b, nil
 }
 
-func (b *Bee) Shutdown(ctx context.Context) error {
+func (b *Ant) Shutdown(ctx context.Context) error {
 	var mErr error
 
 	// if a shutdown is already in process, return here
@@ -992,7 +992,7 @@ func (b *Bee) Shutdown(ctx context.Context) error {
 // agnostic way to trigger os.Signals in go unfortunately. Which is why we will use the process.Kill
 // approach which works on windows as well.
 type pidKiller struct {
-	node *Bee
+	node *Ant
 }
 
 var ErrShutdownInProgress error = errors.New("shutdown in progress")
