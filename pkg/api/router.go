@@ -158,15 +158,6 @@ func (s *server) setupRouting() {
 
 	s.Handler = web.ChainHandlers(
 		httpaccess.NewHTTPAccessLogHandler(s.logger, logrus.InfoLevel, s.tracer, "api access"),
-		func(h http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if s.Authorization != `` && !strings.EqualFold(r.Header.Get(`Authorization`), s.Authorization) {
-					jsonhttp.InternalServerError(w, fmt.Errorf("authorization failed"))
-					return
-				}
-				h.ServeHTTP(w, r)
-			})
-		},
 		handlers.CompressHandler,
 		// todo: add recovery handler
 		s.responseCodeMetricsHandler,
@@ -179,6 +170,20 @@ func (s *server) setupRouting() {
 					w.Header().Set("Access-Control-Allow-Headers", "Origin, Accept, Authorization, Content-Type, X-Requested-With, Access-Control-Request-Headers, Access-Control-Request-Method, Swarm-Tag, Swarm-Pin, Swarm-Encrypt, Swarm-Index-Document, Swarm-Error-Document, Swarm-Collection, Swarm-Postage-Batch-Id, Gas-Price")
 					w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS, POST, PUT, DELETE")
 					w.Header().Set("Access-Control-Max-Age", "3600")
+				}
+				h.ServeHTTP(w, r)
+			})
+		},
+		func(h http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Header.Get(`Access-Control-Request-Headers`) != `` {
+					jsonhttp.NoContent(w)
+					return
+				}
+
+				if s.Authorization != `` && !strings.EqualFold(r.Header.Get(`Authorization`), s.Authorization) {
+					jsonhttp.InternalServerError(w, fmt.Errorf("authorization failed"))
+					return
 				}
 				h.ServeHTTP(w, r)
 			})

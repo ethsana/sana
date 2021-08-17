@@ -14,6 +14,11 @@ import (
 
 func (s *Service) authorizationHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(`Access-Control-Request-Headers`) != `` {
+			jsonhttp.NoContent(w)
+			return
+		}
+
 		if s.authorization != `` && !strings.EqualFold(r.Header.Get(`Authorization`), s.authorization) {
 			jsonhttp.InternalServerError(w, fmt.Errorf("authorization failed"))
 			return
