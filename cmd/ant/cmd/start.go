@@ -431,15 +431,13 @@ func getConfigByNetworkID(networkID uint64, defaultBlockTime uint64) *networkCon
 		config.bootNodes = []string{"/dnsaddr/mainnet.ethsana.org"}
 		config.chainID = 100
 
-	case 3:
-		config.bootNodes = []string{"/dnsaddr/testnet.ethsana.org"}
-		config.chainID = 3
-
 	case 5: //staging
 		config.bootNodes = []string{"/dnsaddr/testnet.ethsana.org"}
 		config.chainID = 5
-	case 10: //test
-		config.chainID = 5
+
+	case 100:
+		config.bootNodes = []string{"/dnsaddr/mainnet.ethsana.org"}
+		config.chainID = 100
 
 	case 31337:
 		config.bootNodes = []string{}
