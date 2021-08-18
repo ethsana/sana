@@ -164,6 +164,9 @@ type Options struct {
 	MineEnabled                bool
 	MineInitialDeposit         string
 	MineContractAddress        string
+	UniswapEnable              bool
+	UniswapEndpoint            string
+	UniswapValidTime           time.Duration
 }
 
 const (
@@ -210,6 +213,11 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 	b.stateStoreCloser = stateStore
 
 	addressbook := addressbook.New(stateStore)
+
+	addrs_, _ := addressbook.Addresses()
+	for _, a := range addrs_ {
+		addressbook.Remove(a.Overlay)
+	}
 
 	var (
 		swapBackend        *ethclient.Client
@@ -432,6 +440,7 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		batchSvc               postage.EventUpdater
 		eventListener          postage.Listener
 		mineSvr                mine.Service
+		oracleSvr              mine.Oracle
 	)
 
 	var postageSyncStart uint64 = 0
@@ -492,7 +501,14 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 				return nil, err
 			}
 
-			oracleSvr := oracle.New(swapBackend, transactionService, mineContractAddress)
+			if o.UniswapEnable {
+				oracleSvr, err = oracle.New(o.UniswapEndpoint, chainCfg.UniV2PairAddress, o.UniswapValidTime, logger)
+				if err != nil {
+					return nil, err
+				}
+
+			}
+
 			mineSvr = mine.NewService(swarmAddress, mineService, nodeSvc, signer, oracleSvr, logger, warmupTime, mine.Options{
 				Store:              stateStore,
 				Backend:            swapBackend,

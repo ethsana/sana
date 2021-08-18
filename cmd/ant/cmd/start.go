@@ -178,6 +178,9 @@ func (c *command) initStartCmd() (err error) {
 				ChainID:                  networkConfig.chainID,
 				MineEnabled:              c.config.GetBool(optionNameMine),
 				MineContractAddress:      c.config.GetString(optionNameMineContractAddress),
+				UniswapEnable:            c.config.GetBool(optionNameUniswapEnable),
+				UniswapEndpoint:          c.config.GetString(optionNameUniswapEndpoint),
+				UniswapValidTime:         c.config.GetDuration(optionNameUniswapValidTime),
 			})
 			if err != nil {
 				return err

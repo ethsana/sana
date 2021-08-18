@@ -70,8 +70,9 @@ const (
 	optionWarmUpTime                    = "warmup-time"
 	optionNameMine                      = "mine"
 	optionNameMineContractAddress       = "mine-address"
+	optionNameUniswapEnable             = "uniswap-enable"
 	optionNameUniswapEndpoint           = "uniswap-endpoint"
-	optionNameUniswapV2Pair             = "uniswap-v2pair"
+	optionNameUniswapValidTime          = "uniswap-valid-time"
 )
 
 func init() {
@@ -250,6 +251,9 @@ func (c *command) setAllFlags(cmd *cobra.Command) {
 	cmd.Flags().Duration(optionWarmUpTime, time.Minute*20, "time to warmup the node before pull/push protocols can be kicked off.")
 	cmd.Flags().Bool(optionNameMine, true, "enable sana miner")
 	cmd.Flags().String(optionNameMineContractAddress, "", "mine contract address")
+	cmd.Flags().Bool(optionNameUniswapEnable, false, "enable uniswap oracle")
+	cmd.Flags().String(optionNameUniswapEndpoint, "", "uniswap ethereum blockchain endpoint")
+	cmd.Flags().Duration(optionNameUniswapValidTime, time.Minute, "uniswap valid time")
 }
 
 func newLogger(cmd *cobra.Command, verbosity string) (logging.Logger, error) {

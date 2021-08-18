@@ -30,8 +30,7 @@ const (
 )
 
 var (
-	// ErrNotFound is the error returned when issuer with given batch ID does not exist.
-	ErrNotFound = errors.New("not found")
+	errNotUniswapOracle = errors.New("the uniswap oracle is not enabled on the current node")
 )
 
 // 50000 SANA
@@ -101,9 +100,7 @@ func NewService(
 ) Service {
 
 	device, err := tee.DeviceID()
-	if err != nil {
-		logger.Errorf("get device id fail: %s", err.Error())
-	} else {
+	if err == nil {
 		platform := "Unknown"
 		switch device.Platform {
 		case tee.AMD:
@@ -151,9 +148,18 @@ func (s *service) NotifyTrustSignature(peer swarm.Address, expire int64, data []
 
 	var resp []byte
 	if v := data[36] == 0; v {
-		price := common.BigToHash(s.oracle.Price())
+		if s.oracle == nil {
+			s.logger.Errorf(errNotUniswapOracle.Error())
+			return errNotUniswapOracle
+		}
 
-		resp, err = signLocalTrustData(s.signer, node, cate, expire, price)
+		price, err := s.oracle.Price(ctx)
+		if err != nil {
+			return err
+		}
+
+		priceHash := common.BigToHash(price)
+		resp, err = signLocalTrustData(s.signer, node, cate, expire, priceHash)
 		if err != nil {
 			return err
 		}
@@ -662,7 +668,6 @@ func (s *service) CashDeposit(ctx context.Context) (common.Hash, error) {
 func (s *service) Start(startBlock uint64) (<-chan struct{}, error) {
 	s.wg.Add(1)
 	go s.manange()
-
 	return s.nodes.Start(startBlock)
 }
 

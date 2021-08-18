@@ -21,13 +21,7 @@ const (
 type EventUpdater interface {
 	Miner(node []byte, deposit, active bool, txHash []byte, blockNumber uint64) error
 	Trust(node []byte, trust bool, txHash []byte) error
-
-	// Create(id []byte, owner []byte, normalisedBalance *big.Int, depth, bucketDepth uint8, immutable bool, txHash []byte) error
-	// TopUp(id []byte, normalisedBalance *big.Int, txHash []byte) error
-	// UpdateDepth(id []byte, depth uint8, normalisedBalance *big.Int, txHash []byte) error
-	// UpdatePrice(price *big.Int, txHash []byte) error
 	UpdateBlockNumber(blockNumber uint64) error
-	// Start(startBlock uint64) (<-chan struct{}, error)
 
 	TransactionStart() error
 	TransactionEnd() error
@@ -52,10 +46,6 @@ type Storer interface {
 	Miners() ([]*Node, error)
 	PutChainState(*ChainState) error
 	GetChainState() *ChainState
-	// GetReserveState() *ReserveState
-	// SetRadiusSetter(RadiusSetter)
-	// Unreserve(UnreserveIteratorFn) error
-
 	Reset() error
 }
 
@@ -88,5 +78,5 @@ type Trust interface {
 }
 
 type Oracle interface {
-	Price() *big.Int
+	Price(ctx context.Context) (*big.Int, error)
 }
