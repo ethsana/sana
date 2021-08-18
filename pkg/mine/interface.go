@@ -56,6 +56,7 @@ type MineContract interface {
 	MinersReceived(ctx context.Context, node common.Hash) (common.Address, error)
 	MinersWithdraw(ctx context.Context, node common.Hash) (*big.Int, error)
 	ExpireOf(ctx context.Context, node common.Hash) (*big.Int, error)
+	DepositOf(ctx context.Context, node common.Hash) (*big.Int, error)
 	Reward(ctx context.Context, node common.Hash) (*big.Int, error)
 	CheckDeposit(ctx context.Context, node common.Hash) (bool, error)
 	Withdraw(ctx context.Context, node common.Hash) (common.Hash, error)

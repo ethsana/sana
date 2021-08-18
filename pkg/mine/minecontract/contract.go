@@ -18,19 +18,17 @@ import (
 )
 
 var (
-	minerABI     = transaction.ParseABIUnchecked(MineABI)
+	mineABI      = transaction.ParseABIUnchecked(MineABI)
+	lockupABI    = transaction.ParseABIUnchecked(LockupABI)
 	errDecodeABI = errors.New("could not decode abi data")
 )
-
-type MinerEvent struct {
-	Node       common.Hash
-	Chequebook common.Address
-}
 
 type service struct {
 	backend            transaction.Backend
 	transactionService transaction.Service
 	address            common.Address
+
+	lockup *common.Address
 }
 
 func New(backend transaction.Backend, transactionService transaction.Service, address common.Address) mine.MineContract {
@@ -42,7 +40,7 @@ func New(backend transaction.Backend, transactionService transaction.Service, ad
 }
 
 func (s *service) MinersReceived(ctx context.Context, node common.Hash) (common.Address, error) {
-	callData, err := minerABI.Pack("miners", node)
+	callData, err := mineABI.Pack("miners", node)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -55,7 +53,7 @@ func (s *service) MinersReceived(ctx context.Context, node common.Hash) (common.
 		return common.Address{}, err
 	}
 
-	results, err := minerABI.Unpack("miners", output)
+	results, err := mineABI.Unpack("miners", output)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -66,7 +64,7 @@ func (s *service) MinersReceived(ctx context.Context, node common.Hash) (common.
 }
 
 func (s *service) MinersWithdraw(ctx context.Context, node common.Hash) (*big.Int, error) {
-	callData, err := minerABI.Pack("miners", node)
+	callData, err := mineABI.Pack("miners", node)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +77,7 @@ func (s *service) MinersWithdraw(ctx context.Context, node common.Hash) (*big.In
 		return nil, err
 	}
 
-	results, err := minerABI.Unpack("miners", output)
+	results, err := mineABI.Unpack("miners", output)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +93,7 @@ func (s *service) MinersWithdraw(ctx context.Context, node common.Hash) (*big.In
 }
 
 func (s *service) Reward(ctx context.Context, node common.Hash) (*big.Int, error) {
-	callData, err := minerABI.Pack(`reward`, node)
+	callData, err := mineABI.Pack(`reward`, node)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +106,7 @@ func (s *service) Reward(ctx context.Context, node common.Hash) (*big.Int, error
 		return nil, err
 	}
 
-	results, err := minerABI.Unpack("reward", output)
+	results, err := mineABI.Unpack("reward", output)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +122,7 @@ func (s *service) Reward(ctx context.Context, node common.Hash) (*big.Int, error
 }
 
 func (s *service) Token(ctx context.Context) (common.Address, error) {
-	callData, err := minerABI.Pack(`token`)
+	callData, err := mineABI.Pack(`token`)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -140,7 +138,7 @@ func (s *service) Token(ctx context.Context) (common.Address, error) {
 }
 
 func (s *service) Lockup(ctx context.Context) (common.Address, error) {
-	callData, err := minerABI.Pack(`lockup`)
+	callData, err := mineABI.Pack(`lockup`)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -156,7 +154,7 @@ func (s *service) Lockup(ctx context.Context) (common.Address, error) {
 }
 
 func (s *service) ExpireOf(ctx context.Context, node common.Hash) (*big.Int, error) {
-	callData, err := minerABI.Pack(`expireOf`, node)
+	callData, err := mineABI.Pack(`expireOf`, node)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +167,44 @@ func (s *service) ExpireOf(ctx context.Context, node common.Hash) (*big.Int, err
 		return nil, err
 	}
 
-	results, err := minerABI.Unpack("expireOf", output)
+	results, err := mineABI.Unpack("expireOf", output)
+	if err != nil {
+		return nil, err
+	}
+	if len(results) != 1 {
+		return nil, errDecodeABI
+	}
+
+	balance, ok := abi.ConvertType(results[0], new(big.Int)).(*big.Int)
+	if !ok || balance == nil {
+		return nil, errDecodeABI
+	}
+	return balance, nil
+}
+
+func (s *service) DepositOf(ctx context.Context, node common.Hash) (*big.Int, error) {
+	if s.lockup == nil {
+		lockup, err := s.Lockup(ctx)
+		if err != nil {
+			return nil, err
+		}
+		s.lockup = &lockup
+	}
+
+	callData, err := lockupABI.Pack(`depositOf`, node)
+	if err != nil {
+		return nil, err
+	}
+
+	output, err := s.transactionService.Call(ctx, &transaction.TxRequest{
+		To:   s.lockup,
+		Data: callData,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	results, err := lockupABI.Unpack("depositOf", output)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +220,7 @@ func (s *service) ExpireOf(ctx context.Context, node common.Hash) (*big.Int, err
 }
 
 func (s *service) Withdraw(ctx context.Context, node common.Hash) (common.Hash, error) {
-	callData, err := minerABI.Pack(`withdraw`, node)
+	callData, err := mineABI.Pack(`withdraw`, node)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -208,7 +243,7 @@ func (s *service) Withdraw(ctx context.Context, node common.Hash) (common.Hash, 
 }
 
 func (s *service) ValidateTrusts(ctx context.Context) (*big.Int, error) {
-	callData, err := minerABI.Pack(`validateTrusts`)
+	callData, err := mineABI.Pack(`validateTrusts`)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +256,7 @@ func (s *service) ValidateTrusts(ctx context.Context) (*big.Int, error) {
 		return nil, err
 	}
 
-	results, err := minerABI.Unpack("validateTrusts", output)
+	results, err := mineABI.Unpack("validateTrusts", output)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +272,7 @@ func (s *service) ValidateTrusts(ctx context.Context) (*big.Int, error) {
 }
 
 func (s *service) Deposit(ctx context.Context, node common.Hash, cate, price *big.Int, deadline *big.Int, signatures []byte) (common.Hash, error) {
-	callData, err := minerABI.Pack("deposit", node, cate, price, deadline, signatures)
+	callData, err := mineABI.Pack("deposit", node, cate, price, deadline, signatures)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -266,7 +301,7 @@ func (s *service) WaitForDeposit(ctx context.Context, txHash common.Hash) error 
 }
 
 func (s *service) CashDeposit(ctx context.Context, node common.Hash) (common.Hash, error) {
-	callData, err := minerABI.Pack("cashDeposit", node)
+	callData, err := mineABI.Pack("cashDeposit", node)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -284,7 +319,7 @@ func (s *service) CashDeposit(ctx context.Context, node common.Hash) (common.Has
 }
 
 func (s *service) Active(ctx context.Context, node common.Hash, cate, deadline *big.Int, signatures []byte) (common.Hash, error) {
-	callData, err := minerABI.Pack("active", node, cate, deadline, signatures)
+	callData, err := mineABI.Pack("active", node, cate, deadline, signatures)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -313,7 +348,7 @@ func (s *service) WaitForActive(ctx context.Context, hash common.Hash) error {
 }
 
 func (s *service) Inactives(ctx context.Context, nodes []common.Hash, deadline *big.Int, signatures []byte) (common.Hash, error) {
-	callData, err := minerABI.Pack("inactives", nodes, deadline, signatures)
+	callData, err := mineABI.Pack("inactives", nodes, deadline, signatures)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -331,7 +366,7 @@ func (s *service) Inactives(ctx context.Context, nodes []common.Hash, deadline *
 }
 
 func (s *service) Dishonesty(ctx context.Context, node common.Hash, deadline *big.Int, signatures []byte) (common.Hash, error) {
-	callData, err := minerABI.Pack("dishonesty", node)
+	callData, err := mineABI.Pack("dishonesty", node)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -349,7 +384,7 @@ func (s *service) Dishonesty(ctx context.Context, node common.Hash, deadline *bi
 }
 
 func (svc *service) CheckDeposit(ctx context.Context, node common.Hash) (bool, error) {
-	callData, err := minerABI.Pack(`miners`, node)
+	callData, err := mineABI.Pack(`miners`, node)
 	if err != nil {
 		return false, err
 	}
@@ -362,7 +397,7 @@ func (svc *service) CheckDeposit(ctx context.Context, node common.Hash) (bool, e
 		return false, err
 	}
 
-	results, err := minerABI.Unpack("miners", output)
+	results, err := mineABI.Unpack("miners", output)
 	if err != nil {
 		return false, err
 	}
@@ -373,7 +408,7 @@ func (svc *service) CheckDeposit(ctx context.Context, node common.Hash) (bool, e
 }
 
 func (svc *service) IsWorking(ctx context.Context, node common.Hash) (bool, error) {
-	callData, err := minerABI.Pack(`miners`, node)
+	callData, err := mineABI.Pack(`miners`, node)
 	if err != nil {
 		return false, err
 	}
@@ -386,7 +421,7 @@ func (svc *service) IsWorking(ctx context.Context, node common.Hash) (bool, erro
 		return false, err
 	}
 
-	results, err := minerABI.Unpack("miners", output)
+	results, err := mineABI.Unpack("miners", output)
 	if err != nil {
 		return false, err
 	}

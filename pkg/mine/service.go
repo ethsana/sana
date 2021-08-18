@@ -46,7 +46,7 @@ type Service interface {
 	NotifyTrustRollCall(peer swarm.Address, expire int64, data []byte) error
 	NotifyTrustRollCallSign(peer swarm.Address, expire int64, data []byte) error
 
-	Status(ctx context.Context) (bool, *big.Int, *big.Int, *big.Int, error)
+	Status(ctx context.Context) (bool, *big.Int, *big.Int, *big.Int, *big.Int, error)
 	Withdraw(ctx context.Context) (common.Hash, error)
 	CashDeposit(ctx context.Context) (common.Hash, error)
 }
@@ -621,22 +621,27 @@ func (s *service) NotifyCertificate(peer swarm.Address, data []byte) ([]byte, er
 	return append(byts, deadbyts...), nil
 }
 
-func (s *service) Status(ctx context.Context) (bool, *big.Int, *big.Int, *big.Int, error) {
+func (s *service) Status(ctx context.Context) (work bool, withdraw *big.Int, reward *big.Int, expire *big.Int, deposit *big.Int, err error) {
 	node := common.BytesToHash(s.base.Bytes())
-	work, err := s.contract.IsWorking(ctx, node)
+
+	work, err = s.contract.IsWorking(ctx, node)
 	if err != nil {
-		return false, nil, nil, nil, err
+		return
 	}
-	withdraw, err := s.contract.MinersWithdraw(ctx, node)
+	withdraw, err = s.contract.MinersWithdraw(ctx, node)
 	if err != nil {
-		return false, nil, nil, nil, err
+		return
 	}
-	reward, err := s.contract.Reward(ctx, node)
+	reward, err = s.contract.Reward(ctx, node)
 	if err != nil {
-		return false, nil, nil, nil, err
+		return
 	}
-	expire, err := s.contract.ExpireOf(ctx, node)
-	return work, withdraw, reward, expire, err
+	expire, err = s.contract.ExpireOf(ctx, node)
+	if err != nil {
+		return
+	}
+	deposit, err = s.contract.DepositOf(ctx, node)
+	return
 }
 
 func (s *service) Withdraw(ctx context.Context) (common.Hash, error) {
