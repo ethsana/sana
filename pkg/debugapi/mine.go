@@ -11,12 +11,7 @@ import (
 	"github.com/ethsana/sana/pkg/jsonhttp"
 )
 
-var (
-	errMineDisable           = "mine disable"
-	errCantMineStatus        = "Cannot get mine status"
-	errCantWithdrawOfMine    = "Cannot withdraw for mine"
-	errCantCashDepositOfMine = "Cannot cashdeposit for mine"
-)
+var errMineDisable = "Mine disable"
 
 type withdrawResponse struct {
 	Hash common.Hash `json:"hash"`
@@ -33,7 +28,7 @@ func (s *Service) mineWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 
 	hash, err := s.mine.Withdraw(ctx)
 	if err != nil {
-		jsonhttp.InternalServerError(w, fmt.Sprint(errCantWithdrawOfMine, " at: ", err.Error()))
+		jsonhttp.InternalServerError(w, fmt.Sprint("Cannot withdraw for mine at: ", err.Error()))
 		return
 	}
 	jsonhttp.OK(w, withdrawResponse{hash})
@@ -47,7 +42,7 @@ func (s *Service) mineCashDepositHandler(w http.ResponseWriter, r *http.Request)
 
 	hash, err := s.mine.CashDeposit(context.Background())
 	if err != nil {
-		jsonhttp.InternalServerError(w, errCantCashDepositOfMine)
+		jsonhttp.InternalServerError(w, fmt.Sprint("Cannot cashdeposit for mine at:", err.Error()))
 		return
 	}
 	jsonhttp.OK(w, withdrawResponse{hash})
@@ -58,6 +53,7 @@ type mineStatusResponse struct {
 	Reward  *bigint.BigInt `json:"reward"`
 	Pending *bigint.BigInt `json:"pending"`
 	Expire  *bigint.BigInt `json:"expire"`
+	Deposit *bigint.BigInt `json:"deposit"`
 }
 
 func (s *Service) mineStatusHandler(w http.ResponseWriter, r *http.Request) {
@@ -66,10 +62,10 @@ func (s *Service) mineStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	work, reward, pending, expire, err := s.mine.Status(context.Background())
+	work, reward, pending, expire, deposit, err := s.mine.Status(context.Background())
 	if err != nil {
 		s.logger.Infof("get mine status err: %s", err)
-		jsonhttp.InternalServerError(w, errCantMineStatus)
+		jsonhttp.InternalServerError(w, fmt.Sprint("Cannot get mine status at:", err.Error()))
 		return
 	}
 
@@ -78,5 +74,6 @@ func (s *Service) mineStatusHandler(w http.ResponseWriter, r *http.Request) {
 		Reward:  bigint.Wrap(reward),
 		Pending: bigint.Wrap(pending),
 		Expire:  bigint.Wrap(expire),
+		Deposit: bigint.Wrap(deposit),
 	})
 }

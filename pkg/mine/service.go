@@ -30,8 +30,7 @@ const (
 )
 
 var (
-	// ErrNotFound is the error returned when issuer with given batch ID does not exist.
-	ErrNotFound = errors.New("not found")
+	errNotUniswapOracle = errors.New("the uniswap oracle is not enabled on the current node")
 )
 
 // 50000 SANA
@@ -47,7 +46,7 @@ type Service interface {
 	NotifyTrustRollCall(peer swarm.Address, expire int64, data []byte) error
 	NotifyTrustRollCallSign(peer swarm.Address, expire int64, data []byte) error
 
-	Status(ctx context.Context) (bool, *big.Int, *big.Int, *big.Int, error)
+	Status(ctx context.Context) (bool, *big.Int, *big.Int, *big.Int, *big.Int, error)
 	Withdraw(ctx context.Context) (common.Hash, error)
 	CashDeposit(ctx context.Context) (common.Hash, error)
 }
@@ -101,9 +100,7 @@ func NewService(
 ) Service {
 
 	device, err := tee.DeviceID()
-	if err != nil {
-		logger.Errorf("get device id fail: %s", err.Error())
-	} else {
+	if err == nil {
 		platform := "Unknown"
 		switch device.Platform {
 		case tee.AMD:
@@ -151,9 +148,18 @@ func (s *service) NotifyTrustSignature(peer swarm.Address, expire int64, data []
 
 	var resp []byte
 	if v := data[36] == 0; v {
-		price := common.BigToHash(s.oracle.Price())
+		if s.oracle == nil {
+			s.logger.Errorf(errNotUniswapOracle.Error())
+			return errNotUniswapOracle
+		}
 
-		resp, err = signLocalTrustData(s.signer, node, cate, expire, price)
+		price, err := s.oracle.Price(ctx)
+		if err != nil {
+			return err
+		}
+
+		priceHash := common.BigToHash(price)
+		resp, err = signLocalTrustData(s.signer, node, cate, expire, priceHash)
 		if err != nil {
 			return err
 		}
@@ -615,22 +621,27 @@ func (s *service) NotifyCertificate(peer swarm.Address, data []byte) ([]byte, er
 	return append(byts, deadbyts...), nil
 }
 
-func (s *service) Status(ctx context.Context) (bool, *big.Int, *big.Int, *big.Int, error) {
+func (s *service) Status(ctx context.Context) (work bool, withdraw *big.Int, reward *big.Int, expire *big.Int, deposit *big.Int, err error) {
 	node := common.BytesToHash(s.base.Bytes())
-	work, err := s.contract.IsWorking(ctx, node)
+
+	work, err = s.contract.IsWorking(ctx, node)
 	if err != nil {
-		return false, nil, nil, nil, err
+		return
 	}
-	withdraw, err := s.contract.MinersWithdraw(ctx, node)
+	withdraw, err = s.contract.MinersWithdraw(ctx, node)
 	if err != nil {
-		return false, nil, nil, nil, err
+		return
 	}
-	reward, err := s.contract.Reward(ctx, node)
+	reward, err = s.contract.Reward(ctx, node)
 	if err != nil {
-		return false, nil, nil, nil, err
+		return
 	}
-	expire, err := s.contract.ExpireOf(ctx, node)
-	return work, withdraw, reward, expire, err
+	expire, err = s.contract.ExpireOf(ctx, node)
+	if err != nil {
+		return
+	}
+	deposit, err = s.contract.DepositOf(ctx, node)
+	return
 }
 
 func (s *service) Withdraw(ctx context.Context) (common.Hash, error) {
@@ -662,7 +673,6 @@ func (s *service) CashDeposit(ctx context.Context) (common.Hash, error) {
 func (s *service) Start(startBlock uint64) (<-chan struct{}, error) {
 	s.wg.Add(1)
 	go s.manange()
-
 	return s.nodes.Start(startBlock)
 }
 
