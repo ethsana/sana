@@ -96,7 +96,7 @@ func TestPinHandlers(t *testing.T) {
 		jsonhttptest.Request(t, client, http.MethodPost, "/bytes", http.StatusCreated,
 			jsonhttptest.WithRequestHeader(api.SwarmPostageBatchIdHeader, batchOkStr),
 			jsonhttptest.WithRequestBody(strings.NewReader("this is a simple text")),
-			jsonhttptest.WithExpectedJSONResponse(api.BzzUploadResponse{
+			jsonhttptest.WithExpectedJSONResponse(api.SanaUploadResponse{
 				Reference: swarm.MustParseHexAddress(rootHash),
 			}),
 		)
@@ -115,7 +115,7 @@ func TestPinHandlers(t *testing.T) {
 			jsonhttptest.WithRequestBody(tarReader),
 			jsonhttptest.WithRequestHeader("Content-Type", api.ContentTypeTar),
 			jsonhttptest.WithRequestHeader(api.SwarmCollectionHeader, "True"),
-			jsonhttptest.WithExpectedJSONResponse(api.BzzUploadResponse{
+			jsonhttptest.WithExpectedJSONResponse(api.SanaUploadResponse{
 				Reference: swarm.MustParseHexAddress(rootHash),
 			}),
 		)
@@ -126,7 +126,7 @@ func TestPinHandlers(t *testing.T) {
 			jsonhttptest.WithRequestHeader(api.SwarmPostageBatchIdHeader, batchOkStr),
 			jsonhttptest.WithRequestHeader("Content-Type", "text/plain"),
 			jsonhttptest.WithRequestBody(strings.NewReader("this is a simple text")),
-			jsonhttptest.WithExpectedJSONResponse(api.BzzUploadResponse{
+			jsonhttptest.WithExpectedJSONResponse(api.SanaUploadResponse{
 				Reference: swarm.MustParseHexAddress(rootHash),
 			}),
 		)

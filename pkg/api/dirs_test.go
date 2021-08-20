@@ -276,7 +276,7 @@ func TestDirs(t *testing.T) {
 			},
 		},
 	} {
-		verify := func(t *testing.T, resp api.BzzUploadResponse) {
+		verify := func(t *testing.T, resp api.SanaUploadResponse) {
 			t.Helper()
 			// NOTE: reference will be different each time when encryption is enabled
 			if !tc.encrypt {
@@ -384,7 +384,7 @@ func TestDirs(t *testing.T) {
 				// tar all the test case files
 				tarReader := tarFiles(t, tc.files)
 
-				var resp api.BzzUploadResponse
+				var resp api.SanaUploadResponse
 
 				options := []jsonhttptest.Option{
 					jsonhttptest.WithRequestHeader(api.SwarmPostageBatchIdHeader, batchOkStr),
@@ -417,7 +417,7 @@ func TestDirs(t *testing.T) {
 					// tar all the test case files
 					mwReader, mwBoundary := multipartFiles(t, tc.files)
 
-					var resp api.BzzUploadResponse
+					var resp api.SanaUploadResponse
 
 					options := []jsonhttptest.Option{
 						jsonhttptest.WithRequestHeader(api.SwarmPostageBatchIdHeader, batchOkStr),

@@ -115,7 +115,7 @@ func (s *server) dirUploadHandler(w http.ResponseWriter, r *http.Request, storer
 	}
 
 	w.Header().Set(SwarmTagHeader, fmt.Sprint(tag.Uid))
-	jsonhttp.Created(w, bzzUploadResponse{
+	jsonhttp.Created(w, sanaUploadResponse{
 		Reference: reference,
 	})
 }

@@ -82,12 +82,14 @@ func (s *server) setupRouting() {
 		),
 	})
 
+	// TODO Abandoned
 	handle("/bzz", jsonhttp.MethodHandler{
 		"POST": web.ChainHandlers(
-			s.newTracingHandler("bzz-upload"),
-			web.FinalHandlerFunc(s.bzzUploadHandler),
+			s.newTracingHandler("sans-upload"),
+			web.FinalHandlerFunc(s.sanaUploadHandler),
 		),
 	})
+
 	handle("/bzz/{address}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u := r.URL
 		u.Path += "/"
@@ -95,12 +97,35 @@ func (s *server) setupRouting() {
 	}))
 	handle("/bzz/{address}/{path:.*}", jsonhttp.MethodHandler{
 		"GET": web.ChainHandlers(
-			s.newTracingHandler("bzz-download"),
-			web.FinalHandlerFunc(s.bzzDownloadHandler),
+			s.newTracingHandler("sana-download"),
+			web.FinalHandlerFunc(s.sanaDownloadHandler),
 		),
 		"PATCH": web.ChainHandlers(
-			s.newTracingHandler("bzz-patch"),
-			web.FinalHandlerFunc(s.bzzPatchHandler),
+			s.newTracingHandler("sana-patch"),
+			web.FinalHandlerFunc(s.sanaPatchHandler),
+		),
+	})
+
+	handle("/sana", jsonhttp.MethodHandler{
+		"POST": web.ChainHandlers(
+			s.newTracingHandler("sana-upload"),
+			web.FinalHandlerFunc(s.sanaUploadHandler),
+		),
+	})
+
+	handle("/sana/{address}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u := r.URL
+		u.Path += "/"
+		http.Redirect(w, r, u.String(), http.StatusPermanentRedirect)
+	}))
+	handle("/sana/{address}/{path:.*}", jsonhttp.MethodHandler{
+		"GET": web.ChainHandlers(
+			s.newTracingHandler("sana-download"),
+			web.FinalHandlerFunc(s.sanaDownloadHandler),
+		),
+		"PATCH": web.ChainHandlers(
+			s.newTracingHandler("sana-patch"),
+			web.FinalHandlerFunc(s.sanaPatchHandler),
 		),
 	})
 

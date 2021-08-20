@@ -33,30 +33,30 @@ import (
 	"github.com/ethsana/sana/pkg/tracing"
 )
 
-func (s *server) bzzUploadHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) sanaUploadHandler(w http.ResponseWriter, r *http.Request) {
 	logger := tracing.NewLoggerWithTraceID(r.Context(), s.logger)
 
 	contentType := r.Header.Get(contentTypeHeader)
 	mediaType, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		logger.Debugf("bzz upload: parse content type header %q: %v", contentType, err)
-		logger.Errorf("bzz upload: parse content type header %q", contentType)
+		logger.Debugf("sana upload: parse content type header %q: %v", contentType, err)
+		logger.Errorf("sana upload: parse content type header %q", contentType)
 		jsonhttp.BadRequest(w, errInvalidContentType)
 		return
 	}
 
 	batch, err := requestPostageBatchId(r)
 	if err != nil {
-		logger.Debugf("bzz upload: postage batch id: %v", err)
-		logger.Error("bzz upload: postage batch id")
+		logger.Debugf("sana upload: postage batch id: %v", err)
+		logger.Error("sana upload: postage batch id")
 		jsonhttp.BadRequest(w, "invalid postage batch id")
 		return
 	}
 
 	putter, err := newStamperPutter(s.storer, s.post, s.signer, batch)
 	if err != nil {
-		logger.Debugf("bzz upload: putter: %v", err)
-		logger.Error("bzz upload: putter")
+		logger.Debugf("sana upload: putter: %v", err)
+		logger.Error("sana upload: putter")
 		switch {
 		case errors.Is(err, postage.ErrNotFound):
 			jsonhttp.BadRequest(w, "batch not found")
@@ -77,7 +77,7 @@ func (s *server) bzzUploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // fileUploadResponse is returned when an HTTP request to upload a file is successful
-type bzzUploadResponse struct {
+type sanaUploadResponse struct {
 	Reference swarm.Address `json:"reference"`
 }
 
@@ -95,8 +95,8 @@ func (s *server) fileUploadHandler(w http.ResponseWriter, r *http.Request, store
 
 	tag, created, err := s.getOrCreateTag(r.Header.Get(SwarmTagHeader))
 	if err != nil {
-		logger.Debugf("bzz upload file: get or create tag: %v", err)
-		logger.Error("bzz upload file: get or create tag")
+		logger.Debugf("sana upload file: get or create tag: %v", err)
+		logger.Error("sana upload file: get or create tag")
 		jsonhttp.InternalServerError(w, nil)
 		return
 	}
@@ -106,8 +106,8 @@ func (s *server) fileUploadHandler(w http.ResponseWriter, r *http.Request, store
 		if estimatedTotalChunks := requestCalculateNumberOfChunks(r); estimatedTotalChunks > 0 {
 			err = tag.IncN(tags.TotalChunks, estimatedTotalChunks)
 			if err != nil {
-				s.logger.Debugf("bzz upload file: increment tag: %v", err)
-				s.logger.Error("bzz upload file: increment tag")
+				s.logger.Debugf("sana upload file: increment tag: %v", err)
+				s.logger.Error("sana upload file: increment tag")
 				jsonhttp.InternalServerError(w, nil)
 				return
 			}
@@ -125,8 +125,8 @@ func (s *server) fileUploadHandler(w http.ResponseWriter, r *http.Request, store
 	// first store the file and get its reference
 	fr, err := p(ctx, reader)
 	if err != nil {
-		logger.Debugf("bzz upload file: file store, file %q: %v", fileName, err)
-		logger.Errorf("bzz upload file: file store, file %q", fileName)
+		logger.Debugf("sana upload file: file store, file %q: %v", fileName, err)
+		logger.Errorf("sana upload file: file store, file %q", fileName)
 		switch {
 		case errors.Is(err, postage.ErrBucketFull):
 			jsonhttp.PaymentRequired(w, "batch is overissued")
@@ -146,8 +146,8 @@ func (s *server) fileUploadHandler(w http.ResponseWriter, r *http.Request, store
 
 	m, err := manifest.NewDefaultManifest(l, encrypt)
 	if err != nil {
-		logger.Debugf("bzz upload file: create manifest, file %q: %v", fileName, err)
-		logger.Errorf("bzz upload file: create manifest, file %q", fileName)
+		logger.Debugf("sana upload file: create manifest, file %q: %v", fileName, err)
+		logger.Errorf("sana upload file: create manifest, file %q", fileName)
 		jsonhttp.InternalServerError(w, nil)
 		return
 	}
@@ -158,8 +158,8 @@ func (s *server) fileUploadHandler(w http.ResponseWriter, r *http.Request, store
 
 	err = m.Add(ctx, manifest.RootPath, manifest.NewEntry(swarm.ZeroAddress, rootMetadata))
 	if err != nil {
-		logger.Debugf("bzz upload file: adding metadata to manifest, file %q: %v", fileName, err)
-		logger.Errorf("bzz upload file: adding metadata to manifest, file %q", fileName)
+		logger.Debugf("sana upload file: adding metadata to manifest, file %q: %v", fileName, err)
+		logger.Errorf("sana upload file: adding metadata to manifest, file %q", fileName)
 		jsonhttp.InternalServerError(w, nil)
 		return
 	}
@@ -171,8 +171,8 @@ func (s *server) fileUploadHandler(w http.ResponseWriter, r *http.Request, store
 
 	err = m.Add(ctx, fileName, manifest.NewEntry(fr, fileMtdt))
 	if err != nil {
-		logger.Debugf("bzz upload file: adding file to manifest, file %q: %v", fileName, err)
-		logger.Errorf("bzz upload file: adding file to manifest, file %q", fileName)
+		logger.Debugf("sana upload file: adding file to manifest, file %q: %v", fileName, err)
+		logger.Errorf("sana upload file: adding file to manifest, file %q", fileName)
 		jsonhttp.InternalServerError(w, nil)
 		return
 	}
@@ -197,8 +197,8 @@ func (s *server) fileUploadHandler(w http.ResponseWriter, r *http.Request, store
 
 	manifestReference, err := m.Store(ctx, storeSizeFn...)
 	if err != nil {
-		logger.Debugf("bzz upload file: manifest store, file %q: %v", fileName, err)
-		logger.Errorf("bzz upload file: manifest store, file %q", fileName)
+		logger.Debugf("sana upload file: manifest store, file %q: %v", fileName, err)
+		logger.Errorf("sana upload file: manifest store, file %q", fileName)
 		switch {
 		case errors.Is(err, postage.ErrBucketFull):
 			jsonhttp.PaymentRequired(w, "batch is overissued")
@@ -212,8 +212,8 @@ func (s *server) fileUploadHandler(w http.ResponseWriter, r *http.Request, store
 	if created {
 		_, err = tag.DoneSplit(manifestReference)
 		if err != nil {
-			logger.Debugf("bzz upload file: done split: %v", err)
-			logger.Error("bzz upload file: done split failed")
+			logger.Debugf("sana upload file: done split: %v", err)
+			logger.Error("sana upload file: done split failed")
 			jsonhttp.InternalServerError(w, nil)
 			return
 		}
@@ -221,8 +221,8 @@ func (s *server) fileUploadHandler(w http.ResponseWriter, r *http.Request, store
 
 	if strings.ToLower(r.Header.Get(SwarmPinHeader)) == "true" {
 		if err := s.pinning.CreatePin(ctx, manifestReference, false); err != nil {
-			logger.Debugf("bzz upload file: creation of pin for %q failed: %v", manifestReference, err)
-			logger.Error("bzz upload file: creation of pin failed")
+			logger.Debugf("sana upload file: creation of pin for %q failed: %v", manifestReference, err)
+			logger.Error("sana upload file: creation of pin failed")
 			jsonhttp.InternalServerError(w, nil)
 			return
 		}
@@ -231,12 +231,12 @@ func (s *server) fileUploadHandler(w http.ResponseWriter, r *http.Request, store
 	w.Header().Set("ETag", fmt.Sprintf("%q", manifestReference.String()))
 	w.Header().Set(SwarmTagHeader, fmt.Sprint(tag.Uid))
 	w.Header().Set("Access-Control-Expose-Headers", SwarmTagHeader)
-	jsonhttp.Created(w, bzzUploadResponse{
+	jsonhttp.Created(w, sanaUploadResponse{
 		Reference: manifestReference,
 	})
 }
 
-func (s *server) bzzDownloadHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) sanaDownloadHandler(w http.ResponseWriter, r *http.Request) {
 	logger := tracing.NewLoggerWithTraceID(r.Context(), s.logger)
 	ls := loadsave.New(s.storer, storage.ModePutRequest, false)
 	feedDereferenced := false
@@ -257,8 +257,8 @@ func (s *server) bzzDownloadHandler(w http.ResponseWriter, r *http.Request) {
 
 	address, err := s.resolveNameOrAddress(nameOrHex)
 	if err != nil {
-		logger.Debugf("bzz download: parse address %s: %v", nameOrHex, err)
-		logger.Error("bzz download: parse address")
+		logger.Debugf("sana download: parse address %s: %v", nameOrHex, err)
+		logger.Error("sana download: parse address")
 		jsonhttp.NotFound(w, nil)
 		return
 	}
@@ -270,8 +270,8 @@ FETCH:
 		ls,
 	)
 	if err != nil {
-		logger.Debugf("bzz download: not manifest %s: %v", address, err)
-		logger.Error("bzz download: not manifest")
+		logger.Debugf("sana download: not manifest %s: %v", address, err)
+		logger.Error("sana download: not manifest")
 		jsonhttp.NotFound(w, nil)
 		return
 	}
@@ -285,21 +285,21 @@ FETCH:
 			//we have a feed manifest here
 			ch, cur, _, err := l.At(ctx, time.Now().Unix(), 0)
 			if err != nil {
-				logger.Debugf("bzz download: feed lookup: %v", err)
-				logger.Error("bzz download: feed lookup")
+				logger.Debugf("sana download: feed lookup: %v", err)
+				logger.Error("sana download: feed lookup")
 				jsonhttp.NotFound(w, "feed not found")
 				return
 			}
 			if ch == nil {
-				logger.Debugf("bzz download: feed lookup: no updates")
-				logger.Error("bzz download: feed lookup")
+				logger.Debugf("sana download: feed lookup: no updates")
+				logger.Error("sana download: feed lookup")
 				jsonhttp.NotFound(w, "no update found")
 				return
 			}
 			ref, _, err := parseFeedUpdate(ch)
 			if err != nil {
-				logger.Debugf("bzz download: parse feed update: %v", err)
-				logger.Error("bzz download: parse feed update")
+				logger.Debugf("sana download: parse feed update: %v", err)
+				logger.Error("sana download: parse feed update")
 				jsonhttp.InternalServerError(w, "parse feed update")
 				return
 			}
@@ -307,8 +307,8 @@ FETCH:
 			feedDereferenced = true
 			curBytes, err := cur.MarshalBinary()
 			if err != nil {
-				s.logger.Debugf("bzz download: marshal feed index: %v", err)
-				s.logger.Error("bzz download: marshal index")
+				s.logger.Debugf("sana download: marshal feed index: %v", err)
+				s.logger.Error("sana download: marshal index")
 				jsonhttp.InternalServerError(w, "marshal index")
 				return
 			}
@@ -324,14 +324,14 @@ FETCH:
 	}
 
 	if pathVar == "" {
-		logger.Tracef("bzz download: handle empty path %s", address)
+		logger.Tracef("sana download: handle empty path %s", address)
 
 		if indexDocumentSuffixKey, ok := manifestMetadataLoad(ctx, m, manifest.RootPath, manifest.WebsiteIndexDocumentSuffixKey); ok {
 			pathWithIndex := path.Join(pathVar, indexDocumentSuffixKey)
 			indexDocumentManifestEntry, err := m.Lookup(ctx, pathWithIndex)
 			if err == nil {
 				// index document exists
-				logger.Debugf("bzz download: serving path: %s", pathWithIndex)
+				logger.Debugf("sana download: serving path: %s", pathWithIndex)
 
 				s.serveManifestEntry(w, r, address, indexDocumentManifestEntry, !feedDereferenced)
 				return
@@ -341,8 +341,8 @@ FETCH:
 
 	me, err := m.Lookup(ctx, pathVar)
 	if err != nil {
-		logger.Debugf("bzz download: invalid path %s/%s: %v", address, pathVar, err)
-		logger.Error("bzz download: invalid path")
+		logger.Debugf("sana download: invalid path %s/%s: %v", address, pathVar, err)
+		logger.Error("sana download: invalid path")
 
 		if errors.Is(err, manifest.ErrNotFound) {
 
@@ -356,7 +356,7 @@ FETCH:
 					u.Path += "/"
 					redirectURL := u.String()
 
-					logger.Debugf("bzz download: redirecting to %s: %v", redirectURL, err)
+					logger.Debugf("sana download: redirecting to %s: %v", redirectURL, err)
 
 					http.Redirect(w, r, redirectURL, http.StatusPermanentRedirect)
 					return
@@ -371,7 +371,7 @@ FETCH:
 					indexDocumentManifestEntry, err := m.Lookup(ctx, pathWithIndex)
 					if err == nil {
 						// index document exists
-						logger.Debugf("bzz download: serving path: %s", pathWithIndex)
+						logger.Debugf("sana download: serving path: %s", pathWithIndex)
 
 						s.serveManifestEntry(w, r, address, indexDocumentManifestEntry, !feedDereferenced)
 						return
@@ -385,7 +385,7 @@ FETCH:
 					errorDocumentManifestEntry, err := m.Lookup(ctx, errorDocumentPath)
 					if err == nil {
 						// error document exists
-						logger.Debugf("bzz download: serving path: %s", errorDocumentPath)
+						logger.Debugf("sana download: serving path: %s", errorDocumentPath)
 
 						s.serveManifestEntry(w, r, address, errorDocumentManifestEntry, !feedDereferenced)
 						return
@@ -522,19 +522,19 @@ func (s *server) manifestFeed(
 	return s.feedFactory.NewLookup(*t, f)
 }
 
-func (s *server) bzzPatchHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) sanaPatchHandler(w http.ResponseWriter, r *http.Request) {
 	nameOrHex := mux.Vars(r)["address"]
 	address, err := s.resolveNameOrAddress(nameOrHex)
 	if err != nil {
-		s.logger.Debugf("bzz patch: parse address %s: %v", nameOrHex, err)
-		s.logger.Error("bzz patch: parse address")
+		s.logger.Debugf("sana patch: parse address %s: %v", nameOrHex, err)
+		s.logger.Error("sana patch: parse address")
 		jsonhttp.NotFound(w, nil)
 		return
 	}
 	err = s.steward.Reupload(r.Context(), address)
 	if err != nil {
-		s.logger.Debugf("bzz patch: reupload %s: %v", address.String(), err)
-		s.logger.Error("bzz patch: reupload")
+		s.logger.Debugf("sana patch: reupload %s: %v", address.String(), err)
+		s.logger.Error("sana patch: reupload")
 		jsonhttp.InternalServerError(w, nil)
 		return
 	}

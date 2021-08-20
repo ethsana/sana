@@ -13,7 +13,7 @@ type (
 	ChunkAddressResponse  = chunkAddressResponse
 	SocPostResponse       = socPostResponse
 	FeedReferenceResponse = feedReferenceResponse
-	BzzUploadResponse     = bzzUploadResponse
+	SanaUploadResponse    = sanaUploadResponse
 	TagResponse           = tagResponse
 	TagRequest            = tagRequest
 	ListTagsResponse      = listTagsResponse

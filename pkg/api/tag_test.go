@@ -269,7 +269,7 @@ func TestTags(t *testing.T) {
 	t.Run("file tags", func(t *testing.T) {
 		// upload a file without supplying tag
 		expectedHash := swarm.MustParseHexAddress("40e739ebdfd18292925bba4138cd097db9aa18c1b57e74042f48469b48da33a8")
-		expectedResponse := api.BzzUploadResponse{Reference: expectedHash}
+		expectedResponse := api.SanaUploadResponse{Reference: expectedHash}
 
 		respHeaders := jsonhttptest.Request(t, client, http.MethodPost,
 			bzzResource+"?name=somefile", http.StatusCreated,
@@ -293,7 +293,7 @@ func TestTags(t *testing.T) {
 			name: "binary-file",
 		}})
 		expectedHash := swarm.MustParseHexAddress("42bc27c9137c93705ffbc2945fa1aab0e8e1826f1500b7f06f6e3f86f617213b")
-		expectedResponse := api.BzzUploadResponse{Reference: expectedHash}
+		expectedResponse := api.SanaUploadResponse{Reference: expectedHash}
 
 		respHeaders := jsonhttptest.Request(t, client, http.MethodPost, bzzResource, http.StatusCreated,
 			jsonhttptest.WithRequestHeader(api.SwarmPostageBatchIdHeader, batchOkStr),

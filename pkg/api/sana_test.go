@@ -95,7 +95,7 @@ func TestBzzFiles(t *testing.T) {
 			jsonhttptest.WithRequestHeader(api.SwarmPostageBatchIdHeader, batchOkStr),
 			jsonhttptest.WithRequestBody(tr),
 			jsonhttptest.WithRequestHeader("Content-Type", api.ContentTypeTar),
-			jsonhttptest.WithExpectedJSONResponse(api.BzzUploadResponse{
+			jsonhttptest.WithExpectedJSONResponse(api.SanaUploadResponse{
 				Reference: address,
 			}),
 		)
@@ -150,7 +150,7 @@ func TestBzzFiles(t *testing.T) {
 			jsonhttptest.WithRequestHeader(api.SwarmPinHeader, "true"),
 			jsonhttptest.WithRequestBody(tr),
 			jsonhttptest.WithRequestHeader("Content-Type", api.ContentTypeTar),
-			jsonhttptest.WithExpectedJSONResponse(api.BzzUploadResponse{
+			jsonhttptest.WithExpectedJSONResponse(api.SanaUploadResponse{
 				Reference: reference,
 			}),
 		)
@@ -178,7 +178,7 @@ func TestBzzFiles(t *testing.T) {
 	t.Run("encrypt-decrypt", func(t *testing.T) {
 		fileName := "my-pictures.jpeg"
 
-		var resp api.BzzUploadResponse
+		var resp api.SanaUploadResponse
 		jsonhttptest.Request(t, client, http.MethodPost,
 			fileUploadResource+"?name="+fileName, http.StatusCreated,
 			jsonhttptest.WithRequestHeader(api.SwarmPostageBatchIdHeader, batchOkStr),
@@ -214,7 +214,7 @@ func TestBzzFiles(t *testing.T) {
 			fileUploadResource+"?name="+fileName, http.StatusCreated,
 			jsonhttptest.WithRequestHeader(api.SwarmPostageBatchIdHeader, batchOkStr),
 			jsonhttptest.WithRequestBody(bytes.NewReader(simpleData)),
-			jsonhttptest.WithExpectedJSONResponse(api.BzzUploadResponse{
+			jsonhttptest.WithExpectedJSONResponse(api.SanaUploadResponse{
 				Reference: swarm.MustParseHexAddress(rootHash),
 			}),
 			jsonhttptest.WithRequestHeader("Content-Type", "image/jpeg; charset=utf-8"),
@@ -255,7 +255,7 @@ func TestBzzFiles(t *testing.T) {
 			fileUploadResource+"?name="+fileName, http.StatusCreated,
 			jsonhttptest.WithRequestHeader(api.SwarmPostageBatchIdHeader, batchOkStr),
 			jsonhttptest.WithRequestBody(strings.NewReader(sampleHtml)),
-			jsonhttptest.WithExpectedJSONResponse(api.BzzUploadResponse{
+			jsonhttptest.WithExpectedJSONResponse(api.SanaUploadResponse{
 				Reference: swarm.MustParseHexAddress(rootHash),
 			}),
 			jsonhttptest.WithRequestHeader("Content-Type", "text/html; charset=utf-8"),
@@ -294,7 +294,7 @@ func TestBzzFiles(t *testing.T) {
 			fileUploadResource+"?name="+fileName, http.StatusCreated,
 			jsonhttptest.WithRequestHeader(api.SwarmPostageBatchIdHeader, batchOkStr),
 			jsonhttptest.WithRequestBody(bytes.NewReader(simpleData)),
-			jsonhttptest.WithExpectedJSONResponse(api.BzzUploadResponse{
+			jsonhttptest.WithExpectedJSONResponse(api.SanaUploadResponse{
 				Reference: swarm.MustParseHexAddress(rootHash),
 			}),
 			jsonhttptest.WithRequestHeader("Content-Type", "text/html; charset=utf-8"),
@@ -408,7 +408,7 @@ func TestBzzFilesRangeRequests(t *testing.T) {
 				Post:   mockpost.New(mockpost.WithAcceptAll()),
 			})
 
-			var resp api.BzzUploadResponse
+			var resp api.SanaUploadResponse
 
 			testOpts := []jsonhttptest.Option{
 				jsonhttptest.WithRequestHeader(api.SwarmPostageBatchIdHeader, batchOkStr),
@@ -533,7 +533,7 @@ func TestFeedIndirection(t *testing.T) {
 		},
 	})
 
-	var resp api.BzzUploadResponse
+	var resp api.SanaUploadResponse
 
 	options := []jsonhttptest.Option{
 		jsonhttptest.WithRequestHeader(api.SwarmPostageBatchIdHeader, batchOkStr),
