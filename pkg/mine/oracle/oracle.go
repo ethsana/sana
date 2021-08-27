@@ -17,6 +17,7 @@ import (
 )
 
 var (
+	defaultPrice   = big.NewInt(10000)
 	v2PairABI      = transaction.ParseABIUnchecked(UniswapV2PairABI)
 	decimalSANA    = new(big.Int).Exp(big.NewInt(10), big.NewInt(16), nil)
 	decimalETH     = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
@@ -70,7 +71,11 @@ func New(
 	}, nil
 }
 
-func (s *service) Price(ctx context.Context) (_ *big.Int, err error) {
+func (s *service) Price(ctx context.Context) (*big.Int, error) {
+	return defaultPrice, nil
+}
+
+func (s *service) PriceNew(ctx context.Context) (_ *big.Int, err error) {
 	now := time.Now()
 	s.priceMtx.Lock()
 	defer s.priceMtx.Unlock()

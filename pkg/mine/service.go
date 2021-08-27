@@ -133,17 +133,27 @@ func (s *service) NotifyTrustSignature(peer swarm.Address, expire int64, data []
 
 	// id node
 	node := common.BytesToHash(data[4:36])
+	nodeExpire, err := s.contract.ExpireOf(ctx, node)
+	if err != nil {
+		return err
+	}
+
+	if nodeExpire.Cmp(big.NewInt(0)) != 0 {
+		return fmt.Errorf("node %v cannot be activated", node.String())
+	}
+
 	cate := int64(0)
 	if len(data) > 37 {
 		device := tee.NewDevice(data[37:])
 		ok, err := device.Verify()
 		if err != nil {
-			s.logger.Errorf("device verify fail %s", err.Error())
+			s.logger.Errorf("device verify fail: %s", err.Error())
+		}
+		if !ok {
+			return fmt.Errorf("device verify fail")
 		}
 
-		if ok {
-			cate = int64(1)
-		}
+		cate = int64(1)
 	}
 
 	var resp []byte
