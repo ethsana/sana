@@ -13,7 +13,7 @@ import (
 
 var errMineDisable = "Mine disable"
 
-type withdrawResponse struct {
+type callResponse struct {
 	Hash common.Hash `json:"hash"`
 }
 
@@ -31,7 +31,7 @@ func (s *Service) mineWithdrawHandler(w http.ResponseWriter, r *http.Request) {
 		jsonhttp.InternalServerError(w, fmt.Sprint("Cannot withdraw for mine at: ", err.Error()))
 		return
 	}
-	jsonhttp.OK(w, withdrawResponse{hash})
+	jsonhttp.OK(w, callResponse{hash})
 }
 
 func (s *Service) mineCashDepositHandler(w http.ResponseWriter, r *http.Request) {
@@ -45,11 +45,26 @@ func (s *Service) mineCashDepositHandler(w http.ResponseWriter, r *http.Request)
 		jsonhttp.InternalServerError(w, fmt.Sprint("Cannot cashdeposit for mine at:", err.Error()))
 		return
 	}
-	jsonhttp.OK(w, withdrawResponse{hash})
+	jsonhttp.OK(w, callResponse{hash})
+}
+
+func (s *Service) mineUnfreezeHandler(w http.ResponseWriter, r *http.Request) {
+	if !s.minerEnabled {
+		jsonhttp.InternalServerError(w, errMineDisable)
+		return
+	}
+
+	hash, err := s.mine.Unfreeze(context.Background())
+	if err != nil {
+		jsonhttp.InternalServerError(w, fmt.Sprint("Cannot unfreeze for mine at:", err.Error()))
+		return
+	}
+	jsonhttp.OK(w, callResponse{hash})
 }
 
 type mineStatusResponse struct {
 	Work    bool           `json:"work"`
+	Freeze  bool           `json:"freeze"`
 	Reward  *bigint.BigInt `json:"reward"`
 	Pending *bigint.BigInt `json:"pending"`
 	Expire  *bigint.BigInt `json:"expire"`
@@ -62,7 +77,7 @@ func (s *Service) mineStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	work, reward, pending, expire, deposit, err := s.mine.Status(context.Background())
+	work, freeze, reward, pending, expire, deposit, err := s.mine.Status(context.Background())
 	if err != nil {
 		s.logger.Infof("get mine status err: %s", err)
 		jsonhttp.InternalServerError(w, fmt.Sprint("Cannot get mine status at:", err.Error()))
@@ -71,6 +86,7 @@ func (s *Service) mineStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	jsonhttp.OK(w, mineStatusResponse{
 		Work:    work,
+		Freeze:  freeze,
 		Reward:  bigint.Wrap(reward),
 		Pending: bigint.Wrap(pending),
 		Expire:  bigint.Wrap(expire),

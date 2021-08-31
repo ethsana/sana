@@ -30,6 +30,8 @@ const (
 )
 
 var (
+	errNodeIsFreeze     = errors.New("node is freeze")
+	errNodeIsCashout    = errors.New("node is cashout")
 	errNotUniswapOracle = errors.New("the uniswap oracle is not enabled on the current node")
 )
 
@@ -46,9 +48,10 @@ type Service interface {
 	NotifyTrustRollCall(peer swarm.Address, expire int64, data []byte) error
 	NotifyTrustRollCallSign(peer swarm.Address, expire int64, data []byte) error
 
-	Status(ctx context.Context) (bool, *big.Int, *big.Int, *big.Int, *big.Int, error)
+	Status(ctx context.Context) (bool, bool, *big.Int, *big.Int, *big.Int, *big.Int, error)
 	Withdraw(ctx context.Context) (common.Hash, error)
 	CashDeposit(ctx context.Context) (common.Hash, error)
+	Unfreeze(ctx context.Context) (common.Hash, error)
 }
 
 // service handles mine
@@ -140,6 +143,14 @@ func (s *service) NotifyTrustSignature(peer swarm.Address, expire int64, data []
 
 	if nodeExpire.Cmp(big.NewInt(0)) != 0 {
 		return fmt.Errorf("node %v cannot be activated", node.String())
+	}
+
+	freeze, err := s.contract.FreezeOf(ctx, node)
+	if err != nil {
+		return err
+	}
+	if freeze {
+		return fmt.Errorf("node %v is freeze", node.String())
 	}
 
 	cate := int64(0)
@@ -352,10 +363,11 @@ func (s *service) mortgageMiner(ctx context.Context) error {
 }
 
 func (s *service) checkWorkingWorker() (bool, error) {
-	ctx, cancal := context.WithTimeout(context.Background(), time.Second*20)
+	ctx, cancal := context.WithTimeout(context.TODO(), time.Second*20)
 	defer cancal()
 
 	node := common.BytesToHash(s.base.Bytes())
+
 	work, err := s.contract.IsWorking(ctx, node)
 	if err != nil {
 		return false, err
@@ -363,6 +375,30 @@ func (s *service) checkWorkingWorker() (bool, error) {
 
 	if work {
 		return true, nil
+	}
+
+	{
+		// check node freeze
+		freeze, err := s.contract.FreezeOf(ctx, node)
+		if err != nil {
+			return false, err
+		}
+
+		if freeze {
+			return false, errNodeIsFreeze
+		}
+	}
+
+	{
+		// check cashout deposit
+		expire, err := s.contract.ExpireOf(ctx, node)
+		if err != nil {
+			return false, err
+		}
+
+		if expire.Cmp(big.NewInt(0)) != 0 {
+			return false, errNodeIsCashout
+		}
 	}
 
 	// check deposit
@@ -587,20 +623,23 @@ func (s *service) manange() {
 
 			err := s.signRollCallToTrust(rc.Expire, rc.Height, rc.Address)
 			if err != nil {
-				s.logger.Errorf("sign rollcall to trust %s fail %s", rc.Address.String(), err.Error())
+				s.logger.Errorf("sign rollcall to trust %s fail: %v", rc.Address.String(), err.Error())
 				s.rcnc <- rc
 			}
 
 		case <-timer.C:
 			ok, err := s.checkWorkingWorker()
 			if err != nil {
-				s.logger.Infof("check mine working failed at %s", err)
+				s.logger.Infof("check mine working fail: %v", err)
 			}
-			if !ok {
-				timer.Reset(time.Second * 10)
+
+			if ok {
+				timer.Reset(time.Minute * 30)
+				s.logger.Infof("the overlay address %v mining", s.base.String())
+			} else if errors.Is(err, errNodeIsCashout) || errors.Is(err, errNodeIsFreeze) {
+				timer.Reset(time.Hour)
 			} else {
-				timer.Reset(time.Minute * 5)
-				s.logger.Infof("the overlay address %s mining", s.base.String())
+				timer.Reset(time.Second * 30)
 			}
 
 		case <-s.quit:
@@ -631,10 +670,14 @@ func (s *service) NotifyCertificate(peer swarm.Address, data []byte) ([]byte, er
 	return append(byts, deadbyts...), nil
 }
 
-func (s *service) Status(ctx context.Context) (work bool, withdraw *big.Int, reward *big.Int, expire *big.Int, deposit *big.Int, err error) {
+func (s *service) Status(ctx context.Context) (work, freeze bool, withdraw *big.Int, reward *big.Int, expire *big.Int, deposit *big.Int, err error) {
 	node := common.BytesToHash(s.base.Bytes())
 
 	work, err = s.contract.IsWorking(ctx, node)
+	if err != nil {
+		return
+	}
+	freeze, err = s.contract.FreezeOf(ctx, node)
 	if err != nil {
 		return
 	}
@@ -657,12 +700,13 @@ func (s *service) Status(ctx context.Context) (work bool, withdraw *big.Int, rew
 func (s *service) Withdraw(ctx context.Context) (common.Hash, error) {
 	node := common.BytesToHash(s.base.Bytes())
 
-	hash, err := s.contract.Withdraw(ctx, node)
-	if err != nil {
-		return common.Hash{}, err
-	}
+	return s.contract.Withdraw(ctx, node)
+}
 
-	return hash, err
+func (s *service) Unfreeze(ctx context.Context) (common.Hash, error) {
+	node := common.BytesToHash(s.base.Bytes())
+
+	return s.contract.Unfreeze(ctx, node)
 }
 
 func (s *service) CashDeposit(ctx context.Context) (common.Hash, error) {

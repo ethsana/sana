@@ -197,6 +197,10 @@ func (s *Service) newRouter() *mux.Router {
 		"POST": http.HandlerFunc(s.mineCashDepositHandler),
 	})
 
+	router.Handle(`/mine/unfreeze`, jsonhttp.MethodHandler{
+		"POST": http.HandlerFunc(s.mineUnfreezeHandler),
+	})
+
 	router.Handle("/tags/{id}", jsonhttp.MethodHandler{
 		"GET": http.HandlerFunc(s.getTagHandler),
 	})

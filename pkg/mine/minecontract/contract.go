@@ -182,6 +182,31 @@ func (s *service) ExpireOf(ctx context.Context, node common.Hash) (*big.Int, err
 	return balance, nil
 }
 
+func (s *service) FreezeOf(ctx context.Context, node common.Hash) (bool, error) {
+	callData, err := mineABI.Pack(`freezeOf`, node)
+	if err != nil {
+		return false, err
+	}
+
+	output, err := s.transactionService.Call(ctx, &transaction.TxRequest{
+		To:   &s.address,
+		Data: callData,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	results, err := mineABI.Unpack("freezeOf", output)
+	if err != nil {
+		return false, err
+	}
+	if len(results) != 1 {
+		return false, errDecodeABI
+	}
+
+	return results[0].(bool), nil
+}
+
 func (s *service) DepositOf(ctx context.Context, node common.Hash) (*big.Int, error) {
 	if s.lockup == nil {
 		lockup, err := s.Lockup(ctx)
@@ -217,6 +242,28 @@ func (s *service) DepositOf(ctx context.Context, node common.Hash) (*big.Int, er
 		return nil, errDecodeABI
 	}
 	return balance, nil
+}
+
+func (s *service) Unfreeze(ctx context.Context, node common.Hash) (common.Hash, error) {
+	callData, err := mineABI.Pack(`unfreeze`, node)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	request := &transaction.TxRequest{
+		To:          &s.address,
+		Data:        callData,
+		GasPrice:    sctx.GetGasPrice(ctx),
+		Value:       big.NewInt(0),
+		Description: "unfreeze ",
+	}
+
+	txHash, err := s.transactionService.Send(ctx, request)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return txHash, nil
 }
 
 func (s *service) Withdraw(ctx context.Context, node common.Hash) (common.Hash, error) {
