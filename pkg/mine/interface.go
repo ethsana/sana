@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/syncer"
 	"golang.org/x/net/context"
 )
 
@@ -28,7 +29,7 @@ type EventUpdater interface {
 }
 
 type NodeService interface {
-	Start(startBlock uint64) (<-chan struct{}, error)
+	Sync() *syncer.Sync
 	TrustOf(node swarm.Address) bool
 	UpdateNodeLastBlock(node swarm.Address, blockNumber uint64) error
 	TrustAddress(filter func(swarm.Address) bool) []swarm.Address
@@ -46,7 +47,7 @@ type Storer interface {
 	Miners() ([]*Node, error)
 	PutChainState(*ChainState) error
 	GetChainState() *ChainState
-	Reset() error
+	Reset(startBlock uint64) error
 }
 
 type MineContract interface {

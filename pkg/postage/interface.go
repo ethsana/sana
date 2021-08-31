@@ -7,17 +7,20 @@ package postage
 import (
 	"io"
 	"math/big"
+
+	"github.com/ethsana/sana/pkg/syncer"
 )
 
 // EventUpdater interface definitions reflect the updates triggered by events
 // emitted by the postage contract on the blockchain.
 type EventUpdater interface {
+	Sync() *syncer.Sync
 	Create(id []byte, owner []byte, normalisedBalance *big.Int, depth, bucketDepth uint8, immutable bool, txHash []byte) error
 	TopUp(id []byte, normalisedBalance *big.Int, txHash []byte) error
 	UpdateDepth(id []byte, depth uint8, normalisedBalance *big.Int, txHash []byte) error
 	UpdatePrice(price *big.Int, txHash []byte) error
 	UpdateBlockNumber(blockNumber uint64) error
-	Start(startBlock uint64) (<-chan struct{}, error)
+	// Start(startBlock uint64) (<-chan struct{}, error)
 
 	TransactionStart() error
 	TransactionEnd() error
@@ -36,7 +39,7 @@ type Storer interface {
 	SetRadiusSetter(RadiusSetter)
 	Unreserve(UnreserveIteratorFn) error
 
-	Reset() error
+	Reset(startBlock uint64) error
 }
 
 type RadiusSetter interface {

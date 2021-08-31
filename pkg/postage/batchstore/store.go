@@ -198,7 +198,7 @@ func (s *store) SetRadiusSetter(r postage.RadiusSetter) {
 	s.radiusSetter = r
 }
 
-func (s *store) Reset() error {
+func (s *store) Reset(startBlock uint64) error {
 	prefix := "batchstore_"
 	if err := s.store.Iterate(prefix, func(k, _ []byte) (bool, error) {
 		if strings.HasPrefix(string(k), prefix) {
@@ -211,7 +211,7 @@ func (s *store) Reset() error {
 		return err
 	}
 	s.cs = &postage.ChainState{
-		Block:        0,
+		Block:        startBlock,
 		TotalAmount:  big.NewInt(0),
 		CurrentPrice: big.NewInt(0),
 	}
