@@ -71,11 +71,7 @@ func New(
 	}, nil
 }
 
-func (s *service) Price(ctx context.Context) (*big.Int, error) {
-	return defaultPrice, nil
-}
-
-func (s *service) PriceNew(ctx context.Context) (_ *big.Int, err error) {
+func (s *service) Price(ctx context.Context) (_ *big.Int, err error) {
 	now := time.Now()
 	s.priceMtx.Lock()
 	defer s.priceMtx.Unlock()
@@ -85,6 +81,8 @@ func (s *service) PriceNew(ctx context.Context) (_ *big.Int, err error) {
 		if err != nil {
 			return nil, err
 		}
+		// Make up 10 times the difference
+		s.price = new(big.Int).Add(s.price, big.NewInt(16100))
 		s.expire = time.Now().Add(s.validTime)
 	}
 
