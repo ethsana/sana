@@ -8,16 +8,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethsana/sana/pkg/logging"
 	"github.com/ethsana/sana/pkg/mine"
-	"github.com/ethsana/sana/pkg/postage"
+	"github.com/ethsana/sana/pkg/mine/minecontract"
 	"github.com/ethsana/sana/pkg/storage"
 	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/syncer"
 	"github.com/ethsana/sana/pkg/transaction"
 )
 
@@ -25,12 +29,18 @@ const (
 	dirtyDBKey = "nodeservice_dirty_db"
 )
 
+var (
+	minerABI   = transaction.ParseABIUnchecked(minecontract.MineABI)
+	minerTopic = minerABI.Events[`Miner`].ID
+	trustTopic = minerABI.Events[`Trust`].ID
+)
+
 type service struct {
 	stateStore storage.StateStorer
 	storer     mine.Storer
 	logger     logging.Logger
-	listener   postage.Listener
 	backend    transaction.Backend
+	address    common.Address
 
 	nodes    map[common.Hash]*mine.Node
 	nodesMtx sync.RWMutex
@@ -46,10 +56,26 @@ func New(
 	stateStore storage.StateStorer,
 	storer mine.Storer,
 	logger logging.Logger,
-	listener postage.Listener,
 	backend transaction.Backend,
 	startBlock uint64,
+	address common.Address,
 ) (mine.NodeService, error) {
+	dirty := false
+	err := stateStore.Get(dirtyDBKey, &dirty)
+	if err != nil && !errors.Is(err, storage.ErrNotFound) {
+		return nil, err
+	}
+	if dirty {
+		logger.Warning("mine service: dirty shutdown detected, resetting batch store")
+		if err := storer.Reset(startBlock); err != nil {
+			return nil, err
+		}
+		if err := stateStore.Delete(dirtyDBKey); err != nil {
+			return nil, err
+		}
+		logger.Warning("mine service: node store reset. your node will now resync chain data")
+	}
+
 	nodes, err := storer.Miners()
 	if err != nil {
 		return nil, err
@@ -63,12 +89,69 @@ func New(
 		stateStore: stateStore,
 		storer:     storer,
 		logger:     logger,
-		listener:   listener,
 		backend:    backend,
 		nodes:      dict,
 		startBlock: startBlock,
+		address:    address,
 	}
 	return &s, nil
+}
+
+func (s *service) Sync() *syncer.Sync {
+	return &syncer.Sync{
+		From:       s.storer.GetChainState().Block + 1,
+		FilterLogs: s.filterLogs,
+		Updater:    s,
+	}
+}
+
+func (s *service) filterLogs(from, to *big.Int) ethereum.FilterQuery {
+	return ethereum.FilterQuery{
+		FromBlock: from,
+		ToBlock:   to,
+		Addresses: []common.Address{s.address},
+		Topics:    [][]common.Hash{{minerTopic, trustTopic}},
+	}
+}
+
+type minerEvent struct {
+	Node    [32]byte
+	Deposit bool
+	Active  bool
+}
+
+type trustEvent struct {
+	Node  [32]byte
+	Trust bool
+}
+
+func (s *service) ProcessEvent(e types.Log) error {
+	// defer l.metrics.EventsProcessed.Inc()
+	switch e.Topics[0] {
+
+	case minerTopic:
+		c := &minerEvent{}
+		err := transaction.ParseEvent(&minerABI, `Miner`, c, e)
+		if err != nil {
+			return err
+		}
+		// l.metrics.MinerCounter.Inc()
+
+		return s.Miner(c.Node[:], c.Deposit, c.Active, e.TxHash[:], e.BlockNumber)
+
+	case trustTopic:
+		c := &trustEvent{}
+		err := transaction.ParseEvent(&minerABI, `Trust`, c, e)
+		if err != nil {
+			return err
+		}
+		// l.metrics.TrustCounter.Inc()
+		return s.Trust(c.Node[:], c.Trust, e.TxHash[:])
+
+	default:
+		// l.metrics.EventErrors.Inc()
+		return errors.New("unknown event")
+	}
 }
 
 func (s *service) Miner(node []byte, deposit, active bool, txHash []byte, blockNumber uint64) error {
@@ -147,37 +230,6 @@ func (s *service) TransactionStart() error {
 
 func (s *service) TransactionEnd() error {
 	return s.stateStore.Delete(dirtyDBKey)
-}
-
-func (s *service) Start(startBlock uint64) (<-chan struct{}, error) {
-	dirty := false
-	err := s.stateStore.Get(dirtyDBKey, &dirty)
-	if err != nil && !errors.Is(err, storage.ErrNotFound) {
-		return nil, err
-	}
-	if dirty {
-		s.logger.Warning("mine service: dirty shutdown detected, resetting batch store")
-		if err := s.storer.Reset(); err != nil {
-			return nil, err
-		}
-		if err := s.stateStore.Delete(dirtyDBKey); err != nil {
-			return nil, err
-		}
-		s.logger.Warning("mine service: node store reset. your node will now resync chain data")
-	}
-
-	cs := s.storer.GetChainState()
-	if cs.Block > startBlock {
-		startBlock = cs.Block
-	}
-
-	syncedChan := s.listener.Listen(startBlock+1, s)
-	go func() {
-		<-syncedChan
-		<-time.After(time.Second * 2)
-		atomic.StoreUint32(&s.synced, 1)
-	}()
-	return syncedChan, nil
 }
 
 func (s *service) UpdateNodeLastBlock(node swarm.Address, blockNumber uint64) error {

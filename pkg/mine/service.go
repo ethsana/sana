@@ -40,7 +40,7 @@ var defaultMineDeposit = new(big.Int).Mul(new(big.Int).Exp(big.NewInt(10), big.N
 
 // Service is the miner service interface.
 type Service interface {
-	Start(startBlock uint64) (<-chan struct{}, error)
+	Start()
 	Close() error
 	SetTrust(rollcall Trust)
 
@@ -724,10 +724,9 @@ func (s *service) CashDeposit(ctx context.Context) (common.Hash, error) {
 	return s.contract.CashDeposit(ctx, node)
 }
 
-func (s *service) Start(startBlock uint64) (<-chan struct{}, error) {
+func (s *service) Start() {
 	s.wg.Add(1)
 	go s.manange()
-	return s.nodes.Start(startBlock)
 }
 
 // Close saves all the active stamp issuers to statestore.

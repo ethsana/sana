@@ -27,7 +27,7 @@ type store struct {
 	logger logging.Logger
 }
 
-func New(st storage.StateStorer, logger logging.Logger) (mine.Storer, error) {
+func New(st storage.StateStorer, startBlock uint64, logger logging.Logger) (mine.Storer, error) {
 	cs := &mine.ChainState{}
 	err := st.Get(chainStateKey, cs)
 
@@ -35,7 +35,7 @@ func New(st storage.StateStorer, logger logging.Logger) (mine.Storer, error) {
 		if !errors.Is(err, storage.ErrNotFound) {
 			return nil, err
 		}
-		cs = &mine.ChainState{Block: 0}
+		cs = &mine.ChainState{Block: startBlock}
 	}
 	return &store{st, cs, logger}, nil
 }
@@ -83,7 +83,7 @@ func (s *store) GetChainState() *mine.ChainState {
 	return s.cs
 }
 
-func (s *store) Reset() error {
+func (s *store) Reset(startBlock uint64) error {
 	prefix := "nodestore_"
 	if err := s.store.Iterate(prefix, func(k, _ []byte) (bool, error) {
 		if strings.HasPrefix(string(k), prefix) {
@@ -95,7 +95,7 @@ func (s *store) Reset() error {
 	}); err != nil {
 		return err
 	}
-	s.cs = &mine.ChainState{Block: 0}
+	s.cs = &mine.ChainState{Block: startBlock}
 	return nil
 }
 

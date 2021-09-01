@@ -51,7 +51,6 @@ import (
 	"github.com/ethsana/sana/pkg/postage"
 	"github.com/ethsana/sana/pkg/postage/batchservice"
 	"github.com/ethsana/sana/pkg/postage/batchstore"
-	"github.com/ethsana/sana/pkg/postage/listener"
 	"github.com/ethsana/sana/pkg/postage/postagecontract"
 	"github.com/ethsana/sana/pkg/pricer"
 	"github.com/ethsana/sana/pkg/pricing"
@@ -72,6 +71,7 @@ import (
 	"github.com/ethsana/sana/pkg/steward"
 	"github.com/ethsana/sana/pkg/storage"
 	"github.com/ethsana/sana/pkg/swarm"
+	"github.com/ethsana/sana/pkg/syncer"
 	"github.com/ethsana/sana/pkg/tags"
 	"github.com/ethsana/sana/pkg/topology"
 	"github.com/ethsana/sana/pkg/topology/kademlia"
@@ -110,7 +110,7 @@ type Ant struct {
 	transactionMonitorCloser io.Closer
 	transactionCloser        io.Closer
 	recoveryHandleCleanup    func()
-	listenerCloser           io.Closer
+	syncerCloser             io.Closer
 	postageServiceCloser     io.Closer
 	priceOracleCloser        io.Closer
 	mineCloser               io.Closer
@@ -438,13 +438,15 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 	var (
 		postageContractService postagecontract.Interface
 		batchSvc               postage.EventUpdater
-		eventListener          postage.Listener
-		mineSvr                mine.Service
-		oracleSvr              mine.Oracle
+		// eventListener          postage.Listener
+		syncSvc   syncer.Service
+		mineSvr   mine.Service
+		oracleSvr mine.Oracle
 	)
 
-	var postageSyncStart uint64 = 0
 	if !o.Standalone {
+		syncSvc = syncer.New(logger, swapBackend, o.BlockTime, &pidKiller{node: b})
+
 		chainCfg, found := config.GetChainConfig(chainID)
 		postageContractAddress, startBlock := chainCfg.PostageStamp, chainCfg.StartBlock
 		if o.PostageContractAddress != "" {
@@ -455,17 +457,20 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		} else if !found {
 			return nil, errors.New("no known postage stamp addresses for this network")
 		}
-		if found {
-			postageSyncStart = startBlock
+
+		if cs := batchStore.GetChainState(); cs.Block == 0 {
+			cs.Block = startBlock
+			err := batchStore.PutChainState(cs)
+			if err != nil {
+				return nil, err
+			}
 		}
 
-		eventListener = listener.New(logger, swapBackend, postageContractAddress, chainCfg.MinerAddress, o.BlockTime, &pidKiller{node: b})
-		b.listenerCloser = eventListener
-
-		batchSvc, err = batchservice.New(stateStore, batchStore, logger, eventListener, overlayEthAddress.Bytes(), post, sha3.New256)
+		batchSvc, err = batchservice.New(stateStore, batchStore, logger, postageContractAddress, overlayEthAddress.Bytes(), startBlock, post, sha3.New256)
 		if err != nil {
 			return nil, err
 		}
+		syncSvc.AddSync(batchSvc.Sync())
 
 		erc20Address, err := postagecontract.LookupERC20Address(p2pCtx, transactionService, postageContractAddress)
 		if err != nil {
@@ -489,17 +494,19 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 				mineContractAddress = common.HexToAddress(o.MineContractAddress)
 			}
 
-			nodeStore, err := nodestore.New(stateStore, logger)
+			nodeStore, err := nodestore.New(stateStore, startBlock, logger)
 			if err != nil {
 				return nil, fmt.Errorf("nodestore: %w", err)
 			}
 
 			mineService := minecontract.New(swapBackend, transactionService, mineContractAddress)
 
-			nodeSvc, err := nodeservice.New(stateStore, nodeStore, logger, eventListener, swapBackend, startBlock)
+			nodeSvc, err := nodeservice.New(stateStore, nodeStore, logger, swapBackend, startBlock, mineContractAddress)
 			if err != nil {
 				return nil, err
 			}
+
+			syncSvc.AddSync(nodeSvc.Sync())
 
 			if o.UniswapEnable {
 				oracleSvr, err = oracle.New(o.UniswapEndpoint, chainCfg.UniV2PairAddress, o.UniswapValidTime, logger)
@@ -588,35 +595,36 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		trust.SetMineObserver(mineSvr)
 	}
 
-	if batchSvc != nil {
-		syncedChan, err := batchSvc.Start(postageSyncStart)
-		if err != nil {
-			return nil, fmt.Errorf("unable to start batch service: %w", err)
-		}
+	if syncSvc != nil {
+		syncedChan := syncSvc.Worker()
 		// wait for the postage contract listener to sync
-		logger.Info("waiting to sync postage contract data, this may take a while... more info available in Debug loglevel")
+		logger.Info("waiting to sync contract data, this may take a while... more info available in Debug loglevel")
 
 		// arguably this is not a very nice solution since we dont support
 		// interrupts at this stage of the application lifecycle. some changes
 		// would be needed on the cmd level to support context cancellation at
 		// this stage
 		<-syncedChan
-
 	}
 
-	if o.MineEnabled && mineSvr != nil {
-		syncedChan, err := mineSvr.Start(postageSyncStart)
-		if err != nil {
-			return nil, fmt.Errorf("unable to start mine service: %w", err)
-		}
-		// wait for the postage contract listener to sync
-		logger.Info("waiting to sync mine contract data, this may take a while... more info available in Debug loglevel")
+	// if batchSvc != nil {
+	// 	syncedChan, err := batchSvc.Start(postageSyncStart)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("unable to start batch service: %w", err)
+	// 	}
+	// 	// wait for the postage contract listener to sync
+	// 	logger.Info("waiting to sync postage contract data, this may take a while... more info available in Debug loglevel")
 
-		// arguably this is not a very nice solution since we dont support
-		// interrupts at this stage of the application lifecycle. some changes
-		// would be needed on the cmd level to support context cancellation at
-		// this stage
-		<-syncedChan
+	// 	// arguably this is not a very nice solution since we dont support
+	// 	// interrupts at this stage of the application lifecycle. some changes
+	// 	// would be needed on the cmd level to support context cancellation at
+	// 	// this stage
+	// 	<-syncedChan
+
+	// }
+
+	if o.MineEnabled && mineSvr != nil {
+		mineSvr.Start()
 	}
 
 	minThreshold := big.NewInt(2 * refreshRate)
@@ -841,11 +849,11 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 			debugAPIService.MustRegisterMetrics(bs.Metrics()...)
 		}
 
-		if eventListener != nil {
-			if ls, ok := eventListener.(metrics.Collector); ok {
-				debugAPIService.MustRegisterMetrics(ls.Metrics()...)
-			}
-		}
+		// if eventListener != nil {
+		// 	if ls, ok := eventListener.(metrics.Collector); ok {
+		// 		debugAPIService.MustRegisterMetrics(ls.Metrics()...)
+		// 	}
+		// }
 
 		if pssServiceMetrics, ok := pssService.(metrics.Collector); ok {
 			debugAPIService.MustRegisterMetrics(pssServiceMetrics.Metrics()...)
@@ -976,7 +984,7 @@ func (b *Ant) Shutdown(ctx context.Context) error {
 	}()
 	go func() {
 		defer wg.Done()
-		tryClose(b.listenerCloser, "listener")
+		tryClose(b.syncerCloser, "syncer")
 	}()
 	go func() {
 		defer wg.Done()

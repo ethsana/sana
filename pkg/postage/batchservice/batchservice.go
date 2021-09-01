@@ -12,9 +12,15 @@ import (
 	"hash"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethersphere/go-storage-incentives-abi/postageabi"
 	"github.com/ethsana/sana/pkg/logging"
 	"github.com/ethsana/sana/pkg/postage"
 	"github.com/ethsana/sana/pkg/storage"
+	"github.com/ethsana/sana/pkg/syncer"
+	"github.com/ethsana/sana/pkg/transaction"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -23,11 +29,23 @@ const (
 	checksumDBKey = "batchservice_checksum"
 )
 
+var (
+	postageStampABI = transaction.ParseABIUnchecked(postageabi.PostageStampABIv0_3_0)
+	// batchCreatedTopic is the postage contract's batch created event topic
+	batchCreatedTopic = postageStampABI.Events["BatchCreated"].ID
+	// batchTopupTopic is the postage contract's batch topup event topic
+	batchTopupTopic = postageStampABI.Events["BatchTopUp"].ID
+	// batchDepthIncreaseTopic is the postage contract's batch dilution event topic
+	batchDepthIncreaseTopic = postageStampABI.Events["BatchDepthIncrease"].ID
+	// priceUpdateTopic is the postage contract's price update event topic
+	priceUpdateTopic = postageStampABI.Events["PriceUpdate"].ID
+)
+
 type batchService struct {
 	stateStore    storage.StateStorer
 	storer        postage.Storer
 	logger        logging.Logger
-	listener      postage.Listener
+	address       common.Address
 	owner         []byte
 	batchListener postage.BatchCreationListener
 
@@ -36,6 +54,7 @@ type batchService struct {
 
 type Interface interface {
 	postage.EventUpdater
+	ProcessEvent(e types.Log) error
 }
 
 // New will create a new BatchService.
@@ -43,8 +62,9 @@ func New(
 	stateStore storage.StateStorer,
 	storer postage.Storer,
 	logger logging.Logger,
-	listener postage.Listener,
+	address common.Address,
 	owner []byte,
+	startBlock uint64,
 	batchListener postage.BatchCreationListener,
 	checksumFunc func() hash.Hash,
 ) (Interface, error) {
@@ -74,7 +94,132 @@ func New(
 		}
 	}
 
-	return &batchService{stateStore, storer, logger, listener, owner, batchListener, sum}, nil
+	dirty := false
+	err := stateStore.Get(dirtyDBKey, &dirty)
+	if err != nil && !errors.Is(err, storage.ErrNotFound) {
+		return nil, err
+	}
+	if dirty {
+		logger.Warning("batch service: dirty shutdown detected, resetting batch store")
+		if err := storer.Reset(startBlock); err != nil {
+			return nil, err
+		}
+		if err := stateStore.Delete(dirtyDBKey); err != nil {
+			return nil, err
+		}
+		logger.Warning("batch service: batch store reset. your node will now resync chain data")
+	}
+	return &batchService{stateStore, storer, logger, address, owner, batchListener, sum}, nil
+}
+
+func (svc *batchService) Sync() *syncer.Sync {
+	return &syncer.Sync{
+		From:       svc.storer.GetChainState().Block + 1,
+		FilterLogs: svc.filterLogs,
+		Updater:    svc,
+	}
+}
+
+func (svc *batchService) filterLogs(from, to *big.Int) ethereum.FilterQuery {
+	return ethereum.FilterQuery{
+		FromBlock: from,
+		ToBlock:   to,
+		Addresses: []common.Address{svc.address},
+		Topics: [][]common.Hash{{
+			batchCreatedTopic,
+			batchTopupTopic,
+			batchDepthIncreaseTopic,
+			priceUpdateTopic,
+		}},
+	}
+}
+
+type batchCreatedEvent struct {
+	BatchId           [32]byte
+	TotalAmount       *big.Int
+	NormalisedBalance *big.Int
+	Owner             common.Address
+	Depth             uint8
+	BucketDepth       uint8
+	ImmutableFlag     bool
+}
+
+type batchTopUpEvent struct {
+	BatchId           [32]byte
+	TopupAmount       *big.Int
+	NormalisedBalance *big.Int
+}
+
+type batchDepthIncreaseEvent struct {
+	BatchId           [32]byte
+	NewDepth          uint8
+	NormalisedBalance *big.Int
+}
+
+type priceUpdateEvent struct {
+	Price *big.Int
+}
+
+func (svc *batchService) ProcessEvent(e types.Log) error {
+	// defer l.metrics.EventsProcessed.Inc()
+	switch e.Topics[0] {
+	case batchCreatedTopic:
+		c := &batchCreatedEvent{}
+		err := transaction.ParseEvent(&postageStampABI, "BatchCreated", c, e)
+		if err != nil {
+			return err
+		}
+		// l.metrics.CreatedCounter.Inc()
+		return svc.Create(
+			c.BatchId[:],
+			c.Owner.Bytes(),
+			c.NormalisedBalance,
+			c.Depth,
+			c.BucketDepth,
+			c.ImmutableFlag,
+			e.TxHash.Bytes(),
+		)
+
+	case batchTopupTopic:
+		c := &batchTopUpEvent{}
+		err := transaction.ParseEvent(&postageStampABI, "BatchTopUp", c, e)
+		if err != nil {
+			return err
+		}
+		// l.metrics.TopupCounter.Inc()
+		return svc.TopUp(
+			c.BatchId[:],
+			c.NormalisedBalance,
+			e.TxHash.Bytes(),
+		)
+	case batchDepthIncreaseTopic:
+		c := &batchDepthIncreaseEvent{}
+		err := transaction.ParseEvent(&postageStampABI, "BatchDepthIncrease", c, e)
+		if err != nil {
+			return err
+		}
+		// l.metrics.DepthCounter.Inc()
+		return svc.UpdateDepth(
+			c.BatchId[:],
+			c.NewDepth,
+			c.NormalisedBalance,
+			e.TxHash.Bytes(),
+		)
+	case priceUpdateTopic:
+		c := &priceUpdateEvent{}
+		err := transaction.ParseEvent(&postageStampABI, "PriceUpdate", c, e)
+		if err != nil {
+			return err
+		}
+		// l.metrics.PriceCounter.Inc()
+		return svc.UpdatePrice(
+			c.Price,
+			e.TxHash.Bytes(),
+		)
+	default:
+		// l.metrics.EventErrors.Inc()
+		return errors.New("unknown event")
+	}
 }
 
 // Create will create a new batch with the given ID, owner value and depth and
@@ -190,27 +335,28 @@ func (svc *batchService) TransactionEnd() error {
 }
 
 func (svc *batchService) Start(startBlock uint64) (<-chan struct{}, error) {
-	dirty := false
-	err := svc.stateStore.Get(dirtyDBKey, &dirty)
-	if err != nil && !errors.Is(err, storage.ErrNotFound) {
-		return nil, err
-	}
-	if dirty {
-		svc.logger.Warning("batch service: dirty shutdown detected, resetting batch store")
-		if err := svc.storer.Reset(); err != nil {
-			return nil, err
-		}
-		if err := svc.stateStore.Delete(dirtyDBKey); err != nil {
-			return nil, err
-		}
-		svc.logger.Warning("batch service: batch store reset. your node will now resync chain data")
-	}
+	// dirty := false
+	// err := svc.stateStore.Get(dirtyDBKey, &dirty)
+	// if err != nil && !errors.Is(err, storage.ErrNotFound) {
+	// 	return nil, err
+	// }
+	// if dirty {
+	// 	svc.logger.Warning("batch service: dirty shutdown detected, resetting batch store")
+	// 	if err := svc.storer.Reset(); err != nil {
+	// 		return nil, err
+	// 	}
+	// 	if err := svc.stateStore.Delete(dirtyDBKey); err != nil {
+	// 		return nil, err
+	// 	}
+	// 	svc.logger.Warning("batch service: batch store reset. your node will now resync chain data")
+	// }
 
-	cs := svc.storer.GetChainState()
-	if cs.Block > startBlock {
-		startBlock = cs.Block
-	}
-	return svc.listener.Listen(startBlock+1, svc), nil
+	// cs := svc.storer.GetChainState()
+	// if cs.Block > startBlock {
+	// 	startBlock = cs.Block
+	// }
+	// return svc.listener.Listen(startBlock+1, svc), nil
+	return nil, nil
 }
 
 // updateChecksum updates the batchservice checksum once an event gets

@@ -147,7 +147,7 @@ func (bs *BatchStore) SetRadiusSetter(r postage.RadiusSetter) {
 	panic("not implemented")
 }
 
-func (bs *BatchStore) Reset() error {
+func (bs *BatchStore) Reset(startBlock uint64) error {
 	bs.resetCallCount++
 	return nil
 }
