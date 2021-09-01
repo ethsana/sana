@@ -727,6 +727,7 @@ func (s *service) CashDeposit(ctx context.Context) (common.Hash, error) {
 func (s *service) Start() {
 	s.wg.Add(1)
 	go s.manange()
+	s.nodes.Start()
 }
 
 // Close saves all the active stamp issuers to statestore.

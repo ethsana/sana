@@ -105,6 +105,10 @@ func (s *service) Sync() *syncer.Sync {
 	}
 }
 
+func (s *service) Start() {
+	atomic.StoreUint32(&s.synced, 1)
+}
+
 func (s *service) filterLogs(from, to *big.Int) ethereum.FilterQuery {
 	return ethereum.FilterQuery{
 		FromBlock: from,
