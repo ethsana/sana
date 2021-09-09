@@ -193,6 +193,9 @@ func (s *service) Worker() <-chan struct{} {
 					return
 				}
 			}
+			if stop {
+				return
+			}
 		}
 	}()
 
