@@ -14,6 +14,10 @@ import (
 
 	"github.com/ethsana/sana/pkg/p2p"
 	"github.com/ethsana/sana/pkg/p2p/libp2p"
+	libp2pm "github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-core/host"
+	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	"github.com/multiformats/go-multistream"
 )
 
@@ -376,6 +380,35 @@ func TestConnectDisconnectEvents(t *testing.T) {
 	expectCounter(t, &dinCount, 1, &countMU)
 	expectCounter(t, &doutCount, 1, &countMU)
 
+}
+
+func TestPing(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	s1, _ := newService(t, 1, libp2pServiceOpts{
+		libp2pOpts: libp2p.WithHostFactory(
+			func(ctx context.Context, _ ...libp2pm.Option) (host.Host, error) {
+				return bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), &bhost.HostOpts{EnablePing: true})
+			},
+		),
+	})
+	defer s1.Close()
+
+	s2, _ := newService(t, 1, libp2pServiceOpts{
+		libp2pOpts: libp2p.WithHostFactory(
+			func(ctx context.Context, _ ...libp2pm.Option) (host.Host, error) {
+				return bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), &bhost.HostOpts{EnablePing: true})
+			},
+		),
+	})
+	defer s2.Close()
+
+	addr := serviceUnderlayAddress(t, s1)
+
+	if _, err := s2.Ping(ctx, addr); err != nil {
+		t.Fatal(err)
+	}
 }
 
 const (

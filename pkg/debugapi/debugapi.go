@@ -9,6 +9,7 @@ package debugapi
 
 import (
 	"crypto/ecdsa"
+	"math/big"
 	"net/http"
 	"sync"
 
@@ -32,6 +33,7 @@ import (
 	"github.com/ethsana/sana/pkg/tracing"
 	"github.com/ethsana/sana/pkg/transaction"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/sync/semaphore"
 )
 
 // Service implements http.Handler interface to be used in HTTP server.
@@ -59,6 +61,7 @@ type Service struct {
 	corsAllowedOrigins []string
 	metricsRegistry    *prometheus.Registry
 	lightNodes         *lightnode.Container
+	blockTime          *big.Int
 	minerEnabled       bool
 	mine               mine.Service
 	authorization      string
@@ -66,13 +69,18 @@ type Service struct {
 	// handler is changed in the Configure method
 	handler   http.Handler
 	handlerMu sync.RWMutex
+
+	// The following are semaphores which exists to limit concurrent access
+	// to some parts of the resources in order to avoid undefined behaviour.
+	postageCreateSem *semaphore.Weighted
+	cashOutChequeSem *semaphore.Weighted
 }
 
 // New creates a new Debug API Service with only basic routers enabled in order
 // to expose /addresses, /health endpoints, Go metrics and pprof. It is useful to expose
 // these endpoints before all dependencies are configured and injected to have
 // access to basic debugging tools and /health endpoint.
-func New(publicKey, pssPublicKey ecdsa.PublicKey, ethereumAddress common.Address, addressbook addressbook.Interface, logger logging.Logger, tracer *tracing.Tracer, corsAllowedOrigins []string, authorization string, transaction transaction.Service) *Service {
+func New(publicKey, pssPublicKey ecdsa.PublicKey, ethereumAddress common.Address, addressbook addressbook.Interface, logger logging.Logger, tracer *tracing.Tracer, corsAllowedOrigins []string, authorization string, blockTime *big.Int, transaction transaction.Service) *Service {
 	s := new(Service)
 	s.publicKey = publicKey
 	s.pssPublicKey = pssPublicKey
@@ -81,9 +89,12 @@ func New(publicKey, pssPublicKey ecdsa.PublicKey, ethereumAddress common.Address
 	s.logger = logger
 	s.tracer = tracer
 	s.corsAllowedOrigins = corsAllowedOrigins
+	s.blockTime = blockTime
 	s.metricsRegistry = newMetricsRegistry()
 	s.transaction = transaction
 	s.authorization = authorization
+	s.postageCreateSem = semaphore.NewWeighted(1)
+	s.cashOutChequeSem = semaphore.NewWeighted(1)
 
 	s.setRouter(s.newBasicRouter())
 

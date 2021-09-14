@@ -50,7 +50,8 @@ type PickyNotifier interface {
 type Notifier interface {
 	Connected(context.Context, Peer, bool) error
 	Disconnected(Peer)
-	Announce(context.Context, swarm.Address, bool) error
+	Announce(ctx context.Context, peer swarm.Address, fullnode bool) error
+	AnnounceTo(ctx context.Context, addressee, peer swarm.Address, fullnode bool) error
 }
 
 // DebugService extends the Service with method used for debugging.
@@ -68,6 +69,18 @@ type Streamer interface {
 type StreamerDisconnecter interface {
 	Streamer
 	Disconnecter
+}
+
+// Pinger interface is used to ping a underlay address which is not yet known to the bee node.
+// It uses libp2p's default ping protocol. This is different from the PingPong protocol as this
+// is meant to be used before we know a particular underlay and we can consider it useful
+type Pinger interface {
+	Ping(ctx context.Context, addr ma.Multiaddr) (rtt time.Duration, err error)
+}
+
+type StreamerPinger interface {
+	Streamer
+	Pinger
 }
 
 // Stream represent a bidirectional data Stream.

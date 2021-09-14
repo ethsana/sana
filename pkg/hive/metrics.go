@@ -5,7 +5,7 @@
 package hive
 
 import (
-	m "github.com/ethsana/sana/pkg/metrics"
+	m "github.com/ethersphere/bee/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -16,6 +16,7 @@ type metrics struct {
 
 	PeersHandler      prometheus.Counter
 	PeersHandlerPeers prometheus.Counter
+	UnreachablePeers  prometheus.Counter
 }
 
 func newMetrics() metrics {
@@ -51,6 +52,12 @@ func newMetrics() metrics {
 			Subsystem: subsystem,
 			Name:      "peers_handler_peers_count",
 			Help:      "Number of peers received in peer messages.",
+		}),
+		UnreachablePeers: prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: m.Namespace,
+			Subsystem: subsystem,
+			Name:      "unreachable_peers_count",
+			Help:      "Number of peers that are unreachable.",
 		}),
 	}
 }

@@ -103,11 +103,15 @@ func (d *mock) Announce(_ context.Context, _ swarm.Address, _ bool) error {
 	return nil
 }
 
+func (d *mock) AnnounceTo(_ context.Context, _, _ swarm.Address, _ bool) error {
+	return nil
+}
+
 func (d *mock) Peers() []swarm.Address {
 	return d.peers
 }
 
-func (d *mock) ClosestPeer(addr swarm.Address, _ bool, skipPeers ...swarm.Address) (peerAddr swarm.Address, err error) {
+func (d *mock) ClosestPeer(addr swarm.Address, wantSelf bool, skipPeers ...swarm.Address) (peerAddr swarm.Address, err error) {
 	if len(skipPeers) == 0 {
 		if d.closestPeerErr != nil {
 			return d.closestPeer, d.closestPeerErr
@@ -147,8 +151,13 @@ func (d *mock) ClosestPeer(addr swarm.Address, _ bool, skipPeers ...swarm.Addres
 	}
 
 	if peerAddr.IsZero() {
-		return peerAddr, topology.ErrNotFound
+		if wantSelf {
+			return peerAddr, topology.ErrWantSelf
+		} else {
+			return peerAddr, topology.ErrNotFound
+		}
 	}
+
 	return peerAddr, nil
 }
 

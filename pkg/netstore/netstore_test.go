@@ -16,6 +16,7 @@ import (
 
 	"github.com/ethsana/sana/pkg/logging"
 	"github.com/ethsana/sana/pkg/netstore"
+	"github.com/ethsana/sana/pkg/postage"
 	postagetesting "github.com/ethsana/sana/pkg/postage/testing"
 	"github.com/ethsana/sana/pkg/pss"
 	"github.com/ethsana/sana/pkg/recovery"
@@ -186,7 +187,7 @@ func TestInvalidPostageStamp(t *testing.T) {
 }
 
 // returns a mock retrieval protocol, a mock local storage and a netstore
-func newRetrievingNetstore(rec recovery.Callback, validStamp func(swarm.Chunk, []byte) (swarm.Chunk, error)) (ret *retrievalMock, mockStore *mock.MockStorer, ns storage.Storer) {
+func newRetrievingNetstore(rec recovery.Callback, validStamp postage.ValidStampFn) (ret *retrievalMock, mockStore *mock.MockStorer, ns storage.Storer) {
 	retrieve := &retrievalMock{}
 	store := mock.NewStorer()
 	logger := logging.New(ioutil.Discard, 0)

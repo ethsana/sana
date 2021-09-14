@@ -5,7 +5,6 @@
 package postage
 
 import (
-	"io"
 	"math/big"
 
 	"github.com/ethsana/sana/pkg/syncer"
@@ -33,23 +32,18 @@ type UnreserveIteratorFn func(id []byte, radius uint8) (bool, error)
 type Storer interface {
 	Get(id []byte) (*Batch, error)
 	Put(*Batch, *big.Int, uint8) error
-	PutChainState(*ChainState) error
 	GetChainState() *ChainState
+	PutChainState(*ChainState) error
 	GetReserveState() *ReserveState
 	SetRadiusSetter(RadiusSetter)
 	Unreserve(UnreserveIteratorFn) error
+	Exists(id []byte) (bool, error)
 
 	Reset(startBlock uint64) error
 }
 
 type RadiusSetter interface {
 	SetRadius(uint8)
-}
-
-// Listener provides a blockchain event iterator.
-type Listener interface {
-	io.Closer
-	Listen(from uint64, updater interface{}) <-chan struct{}
 }
 
 type BatchCreationListener interface {

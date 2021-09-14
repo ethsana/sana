@@ -130,16 +130,19 @@ func TestReplicateBeforeReceipt(t *testing.T) {
 	// it's address is closer to the chunk than secondPeer but it will not receive the chunk
 	psEmpty, storerEmpty, _, _ := createPushSyncNode(t, emptyPeer, defaultPrices, nil, nil, defaultSigner)
 	defer storerEmpty.Close()
+
 	emptyRecorder := streamtest.New(streamtest.WithProtocols(psEmpty.Protocol()), streamtest.WithBaseAddr(secondPeer))
 
 	// node that is connected to closestPeer
 	// will receieve chunk from closestPeer
 	psSecond, storerSecond, _, secondAccounting := createPushSyncNode(t, secondPeer, defaultPrices, emptyRecorder, nil, defaultSigner, mock.WithPeers(emptyPeer), WithinDepthMock)
 	defer storerSecond.Close()
+
 	secondRecorder := streamtest.New(streamtest.WithProtocols(psSecond.Protocol()), streamtest.WithBaseAddr(closestPeer))
 
 	psStorer, storerPeer, _, storerAccounting := createPushSyncNode(t, closestPeer, defaultPrices, secondRecorder, nil, defaultSigner, mock.WithPeers(secondPeer), mock.WithClosestPeerErr(topology.ErrWantSelf), WithinDepthMock)
 	defer storerPeer.Close()
+
 	recorder := streamtest.New(streamtest.WithProtocols(psStorer.Protocol()), streamtest.WithBaseAddr(pivotNode))
 
 	// pivot node needs the streamer since the chunk is intercepted by
@@ -162,9 +165,6 @@ func TestReplicateBeforeReceipt(t *testing.T) {
 
 	// this intercepts the incoming receipt message
 	waitOnRecordAndTest(t, closestPeer, recorder, chunk.Address(), nil)
-
-	// sleep for a bit to allow the second peer to the store replicated chunk
-	time.Sleep(time.Millisecond * 500)
 
 	// this intercepts the outgoing delivery message from storer node to second storer node
 	waitOnRecordAndTest(t, secondPeer, secondRecorder, chunk.Address(), chunk.Data())
@@ -261,9 +261,6 @@ func TestFailToReplicateBeforeReceipt(t *testing.T) {
 
 	// this intercepts the incoming receipt message
 	waitOnRecordAndTest(t, closestPeer, recorder, chunk.Address(), nil)
-
-	// sleep for a bit to allow the second peer to the store replicated chunk
-	time.Sleep(time.Millisecond * 500)
 
 	// this intercepts the outgoing delivery message from storer node to second storer node
 	waitOnRecordAndTest(t, secondPeer, secondRecorder, chunk.Address(), chunk.Data())
@@ -489,8 +486,12 @@ func TestPushChunkToNextClosest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ta2.Get(tags.StateSent) != 2 {
-		t.Fatalf("tags error")
+
+	// the write to the first peer might succeed or
+	// fail, so it is not guaranteed that two increments
+	// are made to Sent. expect >= 1
+	if tg := ta2.Get(tags.StateSent); tg == 0 {
+		t.Fatalf("tags error got %d want >= 1", tg)
 	}
 
 	balance, err := pivotAccounting.Balance(peer2)
@@ -782,8 +783,8 @@ func TestSignsReceipt(t *testing.T) {
 		t.Fatal("receipt block hash do not match")
 	}
 }
-func TestPeerSkipList(t *testing.T) {
 
+func TestPeerSkipList(t *testing.T) {
 	skipList := pushsync.NewPeerSkipList()
 
 	addr1 := testingc.GenerateTestRandomChunk().Address()
@@ -791,25 +792,16 @@ func TestPeerSkipList(t *testing.T) {
 
 	skipList.Add(addr1, addr2, time.Millisecond*10)
 
-	if !skipList.ShouldSkip(addr1) {
+	if !skipList.ChunkSkipPeers(addr1)[0].Equal(addr2) {
 		t.Fatal("peer should be skipped")
-	}
-
-	if !skipList.HasChunk(addr2) {
-		t.Fatal("chunk is missing")
 	}
 
 	time.Sleep(time.Millisecond * 11)
 
 	skipList.PruneExpired()
 
-	if skipList.ShouldSkip(addr1) {
-		t.Fatal("peer should be not be skipped")
-	}
-
-	skipList.PruneChunk(addr2)
-	if skipList.HasChunk(addr2) {
-		t.Fatal("chunk should be missing")
+	if len(skipList.ChunkSkipPeers(addr1)) != 0 {
+		t.Fatal("entry should be pruned")
 	}
 }
 
@@ -929,7 +921,7 @@ func createPushSyncNodeWithAccounting(t *testing.T, addr swarm.Address, prices p
 		return ch, nil
 	}
 
-	return pushsync.New(addr, blockHash.Bytes(), recorderDisconnecter, storer, mockTopology, mtag, true, unwrap, validStamp, logger, acct, mockPricer, signer, nil, 0), storer, mtag
+	return pushsync.New(addr, blockHash.Bytes(), recorderDisconnecter, storer, mockTopology, mtag, true, unwrap, validStamp, logger, acct, mockPricer, signer, nil, -1), storer, mtag
 }
 
 func waitOnRecordAndTest(t *testing.T, peer swarm.Address, recorder *streamtest.Recorder, add swarm.Address, data []byte) {

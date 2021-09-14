@@ -151,7 +151,6 @@ func (c *command) initStartCmd() (err error) {
 				Bootnodes:                networkConfig.bootNodes,
 				CORSAllowedOrigins:       c.config.GetStringSlice(optionCORSAllowedOrigins),
 				DashboardAuthorization:   c.config.GetString(optionDashboardAuthorization),
-				Standalone:               c.config.GetBool(optionNameStandalone),
 				TracingEnabled:           c.config.GetBool(optionNameTracingEnabled),
 				TracingEndpoint:          c.config.GetString(optionNameTracingEndpoint),
 				TracingServiceName:       c.config.GetString(optionNameTracingServiceName),

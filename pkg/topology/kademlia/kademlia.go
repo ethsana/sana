@@ -50,9 +50,10 @@ var (
 )
 
 var (
-	errOverlayMismatch = errors.New("overlay mismatch")
-	errPruneEntry      = errors.New("prune entry")
-	errEmptyBin        = errors.New("empty bin")
+	errOverlayMismatch   = errors.New("overlay mismatch")
+	errPruneEntry        = errors.New("prune entry")
+	errEmptyBin          = errors.New("empty bin")
+	errAnnounceLightNode = errors.New("announcing light node")
 )
 
 type (
@@ -66,7 +67,6 @@ var noopSanctionedPeerFn = func(_ swarm.Address) bool { return false }
 type Options struct {
 	SaturationFunc  binSaturationFunc
 	Bootnodes       []ma.Multiaddr
-	StandaloneMode  bool
 	BootnodeMode    bool
 	BitSuffixLength int
 }
@@ -90,7 +90,6 @@ type Kad struct {
 	peerSig           []chan struct{}
 	peerSigMtx        sync.Mutex
 	logger            logging.Logger // logger
-	standalone        bool           // indicates whether the node is working in standalone mode
 	bootnode          bool           // indicates whether the node is working in bootnode mode
 	collector         *im.Collector
 	quit              chan struct{} // quit channel
@@ -136,7 +135,6 @@ func New(
 		manageC:           make(chan struct{}, 1),
 		waitNext:          waitnext.New(),
 		logger:            logger,
-		standalone:        o.StandaloneMode,
 		bootnode:          o.BootnodeMode,
 		collector:         im.NewCollector(metricsDB),
 		quit:              make(chan struct{}),
@@ -155,10 +153,10 @@ func New(
 
 func (k *Kad) generateCommonBinPrefixes() {
 	bitCombinationsCount := int(math.Pow(2, float64(k.bitSuffixLength)))
-	bitSufixes := make([]uint8, bitCombinationsCount)
+	bitSuffixes := make([]uint8, bitCombinationsCount)
 
 	for i := 0; i < bitCombinationsCount; i++ {
-		bitSufixes[i] = uint8(i)
+		bitSuffixes[i] = uint8(i)
 	}
 
 	addr := swarm.MustParseHexAddress(k.base.String())
@@ -184,6 +182,10 @@ func (k *Kad) generateCommonBinPrefixes() {
 		for j := range binPrefixes[i] {
 			pseudoAddrBytes := binPrefixes[i][j].Bytes()
 
+			if len(pseudoAddrBytes) < 1 {
+				continue
+			}
+
 			// flip first bit for bin
 			indexByte, posBit := i/8, i%8
 			if hasBit(bits.Reverse8(pseudoAddrBytes[indexByte]), uint8(posBit)) {
@@ -197,7 +199,7 @@ func (k *Kad) generateCommonBinPrefixes() {
 			for l := i + 1; l < i+k.bitSuffixLength+1; l++ {
 				index, pos := l/8, l%8
 
-				if hasBit(bitSufixes[j], uint8(bitSuffixPos)) {
+				if hasBit(bitSuffixes[j], uint8(bitSuffixPos)) {
 					pseudoAddrBytes[index] = bits.Reverse8(setBit(bits.Reverse8(pseudoAddrBytes[index]), uint8(pos)))
 				} else {
 					pseudoAddrBytes[index] = bits.Reverse8(clearBit(bits.Reverse8(pseudoAddrBytes[index]), uint8(pos)))
@@ -468,7 +470,7 @@ func (k *Kad) connectionAttemptsHandler(ctx context.Context, wg *sync.WaitGroup,
 			}
 		}
 	}
-	for i := 0; i < 64; i++ {
+	for i := 0; i < 32; i++ {
 		go connAttempt(peerConnChan)
 	}
 	for i := 0; i < 8; i++ {
@@ -504,18 +506,33 @@ func (k *Kad) manage() {
 	peerConnChan2 := make(chan *peerConnInfo)
 	go k.connectionAttemptsHandler(ctx, &wg, peerConnChan, peerConnChan2)
 
+	k.wg.Add(1)
+	go func() {
+		defer k.wg.Done()
+		for {
+			select {
+			case <-k.halt:
+				return
+			case <-k.quit:
+				return
+			case <-time.After(5 * time.Minute):
+				start := time.Now()
+				if err := k.collector.Flush(); err != nil {
+					k.metrics.InternalMetricsFlushTotalErrors.Inc()
+					k.logger.Debugf("kademlia: took %s unable to flush metrics counters to the persistent store: %v", time.Since(start), err)
+				} else {
+					k.metrics.InternalMetricsFlushTime.Observe(float64(time.Since(start).Nanoseconds()))
+					k.logger.Tracef("kademlia took %s to flush", time.Since(start))
+				}
+			}
+		}
+	}()
+
 	for {
 		select {
 		case <-k.quit:
 			return
 		case <-time.After(15 * time.Second):
-			start := time.Now()
-			if err := k.collector.Flush(); err != nil {
-				k.metrics.InternalMetricsFlushTotalErrors.Inc()
-				k.logger.Debugf("kademlia: unable to flush metrics counters to the persistent store: %v", err)
-			} else {
-				k.metrics.InternalMetricsFlushTime.Observe(float64(time.Since(start).Nanoseconds()))
-			}
 			k.notifyManageLoop()
 		case <-k.manageC:
 			start := time.Now()
@@ -529,7 +546,7 @@ func (k *Kad) manage() {
 			default:
 			}
 
-			if k.standalone {
+			if k.bootnode {
 				continue
 			}
 
@@ -849,6 +866,15 @@ func (k *Kad) Announce(ctx context.Context, peer swarm.Address, fullnode bool) e
 	return err
 }
 
+// AnnounceTo announces a selected peer to another.
+func (k *Kad) AnnounceTo(ctx context.Context, addressee, peer swarm.Address, fullnode bool) error {
+	if !fullnode {
+		return errAnnounceLightNode
+	}
+
+	return k.discovery.BroadcastPeers(ctx, addressee, peer)
+}
+
 // AddPeers adds peers to the knownPeers list.
 // This does not guarantee that a connection will immediately
 // be made to the peer.
@@ -1016,14 +1042,15 @@ func (k *Kad) ClosestPeer(addr swarm.Address, includeSelf bool, skipPeers ...swa
 	}
 
 	err := k.connectedPeers.EachBinRev(func(peer swarm.Address, po uint8) (bool, bool, error) {
-		if closest.IsZero() {
-			closest = peer
-		}
 
 		for _, a := range skipPeers {
 			if a.Equal(peer) {
 				return false, false, nil
 			}
+		}
+
+		if closest.IsZero() {
+			closest = peer
 		}
 
 		// kludge: hotfix for topology peer inconsistencies bug
@@ -1309,9 +1336,11 @@ func (k *Kad) Close() error {
 	case <-time.After(5 * time.Second):
 		k.logger.Warning("kademlia manage loop did not shut down properly")
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
 	k.logger.Info("kademlia persisting peer metrics")
-	if err := k.collector.Finalize(time.Now()); err != nil {
+	if err := k.collector.Finalize(ctx, time.Now()); err != nil {
 		k.logger.Debugf("kademlia: unable to finalize open sessions: %v", err)
 	}
 

@@ -545,6 +545,124 @@ func TestTopologyNotifier(t *testing.T) {
 	waitAddrSet(t, &n2disconnectedPeer.Address, &mtx, overlay1)
 }
 
+// TestTopologyAnnounce checks that announcement
+// works correctly for full nodes and light nodes.
+func TestTopologyAnnounce(t *testing.T) {
+	var (
+		mtx sync.Mutex
+		ctx = context.Background()
+
+		ab1, ab2, ab3 = addressbook.New(mock.NewStateStore()), addressbook.New(mock.NewStateStore()), addressbook.New(mock.NewStateStore())
+
+		announceCalled   = false
+		announceToCalled = false
+
+		n1a = func(context.Context, swarm.Address, bool) error {
+			mtx.Lock()
+			announceCalled = true
+			mtx.Unlock()
+			return nil
+		}
+		n1at = func(context.Context, swarm.Address, swarm.Address, bool) error {
+			mtx.Lock()
+			announceToCalled = true
+			mtx.Unlock()
+			return nil
+		}
+	)
+	// test setup: 2 full nodes and one light
+	// light connect to full(1), then full(2)
+	// connects to full(1), check that full(1)
+	// tried to announce full(2) to light.
+
+	notifier1 := mockAnnouncingNotifier(n1a, n1at)
+	s1, overlay1 := newService(t, 1, libp2pServiceOpts{
+		Addressbook: ab1,
+		libp2pOpts: libp2p.Options{
+			FullNode: true,
+		},
+	})
+	s1.SetPickyNotifier(notifier1)
+
+	s2, overlay2 := newService(t, 1, libp2pServiceOpts{
+		Addressbook: ab2,
+		libp2pOpts: libp2p.Options{
+			FullNode: true,
+		},
+	})
+
+	s3, overlay3 := newService(t, 1, libp2pServiceOpts{
+		Addressbook: ab3,
+		libp2pOpts: libp2p.Options{
+			FullNode: false,
+		},
+	})
+
+	addr := serviceUnderlayAddress(t, s1)
+
+	// s3 (light) connects to s1 (full)
+	_, err := s3.Connect(ctx, addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectPeers(t, s3, overlay1)
+	expectPeersEventually(t, s1, overlay3)
+	called := false
+
+	for i := 0; i < 20; i++ {
+		mtx.Lock()
+		called = announceCalled
+		mtx.Unlock()
+		if called {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !called {
+		t.Error("expected announce to be called")
+	}
+	for i := 0; i < 10; i++ {
+		mtx.Lock()
+		called = announceToCalled
+		mtx.Unlock()
+		if called {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	if announceToCalled {
+		t.Error("announceTo called but should not")
+	}
+
+	// check address book entries are there
+	checkAddressbook(t, ab3, overlay1, addr)
+
+	// s2 (full) connects to s1 (full)
+	_, err = s2.Connect(ctx, addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectPeers(t, s2, overlay1)
+	expectPeersEventually(t, s1, overlay2, overlay3)
+
+	for i := 0; i < 20; i++ {
+		mtx.Lock()
+		called = announceToCalled
+		mtx.Unlock()
+		if called {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	if !called {
+		t.Error("expected announceTo to be called")
+	}
+}
+
 func TestTopologyOverSaturated(t *testing.T) {
 	var (
 		mtx sync.Mutex

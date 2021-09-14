@@ -21,6 +21,7 @@ import (
 	"github.com/ethsana/sana/pkg/logging"
 	"github.com/ethsana/sana/pkg/p2p"
 	"github.com/ethsana/sana/pkg/p2p/protobuf"
+	"github.com/ethsana/sana/pkg/postage"
 	"github.com/ethsana/sana/pkg/pullsync/pb"
 	"github.com/ethsana/sana/pkg/pullsync/pullstorage"
 	"github.com/ethsana/sana/pkg/soc"
@@ -67,7 +68,7 @@ type Syncer struct {
 	quit       chan struct{}
 	wg         sync.WaitGroup
 	unwrap     func(swarm.Chunk)
-	validStamp func(swarm.Chunk, []byte) (swarm.Chunk, error)
+	validStamp postage.ValidStampFn
 
 	ruidMtx sync.Mutex
 	ruidCtx map[uint32]func()
@@ -76,7 +77,7 @@ type Syncer struct {
 	io.Closer
 }
 
-func New(streamer p2p.Streamer, storage pullstorage.Storer, unwrap func(swarm.Chunk), validStamp func(swarm.Chunk, []byte) (swarm.Chunk, error), logger logging.Logger) *Syncer {
+func New(streamer p2p.Streamer, storage pullstorage.Storer, unwrap func(swarm.Chunk), validStamp postage.ValidStampFn, logger logging.Logger) *Syncer {
 	return &Syncer{
 		streamer:   streamer,
 		storage:    storage,
@@ -228,7 +229,7 @@ func (s *Syncer) SyncInterval(ctx context.Context, peer swarm.Address, bin uint8
 
 		chunk := swarm.NewChunk(addr, delivery.Data)
 		if chunk, err = s.validStamp(chunk, delivery.Stamp); err != nil {
-			s.logger.Debugf("unverified chunk: %w", err)
+			s.logger.Debugf("unverified chunk: %v", err)
 			continue
 		}
 

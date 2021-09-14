@@ -92,7 +92,11 @@ func (bs *BatchStore) Get(id []byte) (*postage.Batch, error) {
 		}
 		bs.getErrDelayCnt--
 	}
-	if !bytes.Equal(bs.id, id) {
+	exists, err := bs.Exists(id)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
 		return nil, errors.New("no such id")
 	}
 	return bs.batch, nil
@@ -147,6 +151,10 @@ func (bs *BatchStore) SetRadiusSetter(r postage.RadiusSetter) {
 	panic("not implemented")
 }
 
+// Exists reports whether batch referenced by the give id exists.
+func (bs *BatchStore) Exists(id []byte) (bool, error) {
+	return bytes.Equal(bs.id, id), nil
+}
 func (bs *BatchStore) Reset(startBlock uint64) error {
 	bs.resetCallCount++
 	return nil

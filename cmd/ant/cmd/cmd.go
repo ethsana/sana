@@ -41,7 +41,6 @@ const (
 	optionWelcomeMessage                = "welcome-message"
 	optionCORSAllowedOrigins            = "cors-allowed-origins"
 	optionDashboardAuthorization        = "dashboard-authorization"
-	optionNameStandalone                = "standalone"
 	optionNameTracingEnabled            = "tracing-enable"
 	optionNameTracingEndpoint           = "tracing-endpoint"
 	optionNameTracingServiceName        = "tracing-service-name"
@@ -221,7 +220,6 @@ func (c *command) setAllFlags(cmd *cobra.Command) {
 	cmd.Flags().Uint64(optionNameNetworkID, 100, "ID of the Sana network")
 	cmd.Flags().StringSlice(optionCORSAllowedOrigins, []string{}, "origins with CORS headers enabled")
 	cmd.Flags().String(optionDashboardAuthorization, "", "debug api and api authorization token")
-	cmd.Flags().Bool(optionNameStandalone, false, "whether we want the node to start with no listen addresses for p2p")
 	cmd.Flags().Bool(optionNameTracingEnabled, false, "enable tracing")
 	cmd.Flags().String(optionNameTracingEndpoint, "127.0.0.1:6831", "endpoint to send tracing data")
 	cmd.Flags().String(optionNameTracingServiceName, "bee", "service name identifier for tracing")
