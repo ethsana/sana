@@ -214,11 +214,6 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 
 	addressbook := addressbook.New(stateStore)
 
-	addrs_, _ := addressbook.Addresses()
-	for _, a := range addrs_ {
-		addressbook.Remove(a.Overlay)
-	}
-
 	var (
 		swapBackend        *ethclient.Client
 		overlayEthAddress  common.Address
