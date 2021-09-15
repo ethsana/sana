@@ -441,6 +441,7 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 
 	if !o.Standalone {
 		syncSvc = syncer.New(logger, swapBackend, o.BlockTime, &pidKiller{node: b})
+		b.syncerCloser = syncSvc
 
 		chainCfg, found := config.GetChainConfig(chainID)
 		postageContractAddress, startBlock := chainCfg.PostageStamp, chainCfg.StartBlock

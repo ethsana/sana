@@ -43,6 +43,7 @@ type Sync struct {
 type Service interface {
 	AddSync(sync *Sync)
 	Worker() <-chan struct{}
+	Close() error
 }
 
 type service struct {
