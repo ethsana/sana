@@ -214,11 +214,6 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 
 	addressbook := addressbook.New(stateStore)
 
-	addrs_, _ := addressbook.Addresses()
-	for _, a := range addrs_ {
-		addressbook.Remove(a.Overlay)
-	}
-
 	var (
 		swapBackend        *ethclient.Client
 		overlayEthAddress  common.Address
@@ -516,7 +511,7 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 
 			}
 
-			mineSvr = mine.NewService(swarmAddress, mineService, nodeSvc, signer, oracleSvr, logger, warmupTime, mine.Options{
+			mineSvr = mine.NewService(swarmAddress, mineService, nodeSvc, signer, oracleSvr, logger, mine.Options{
 				Store:              stateStore,
 				Backend:            swapBackend,
 				TransactionService: transactionService,

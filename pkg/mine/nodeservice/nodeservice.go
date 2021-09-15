@@ -46,6 +46,7 @@ type service struct {
 	nodesMtx sync.RWMutex
 
 	synced         uint32
+	prevBlock      uint64
 	startBlock     uint64
 	rollcallSig    []chan uint64
 	rollcallSigMtx sync.Mutex
@@ -85,12 +86,15 @@ func New(
 		dict[n.Node] = n
 	}
 
+	prevBlock := (storer.GetChainState().Block - startBlock) / 60
+
 	s := service{
 		stateStore: stateStore,
 		storer:     storer,
 		logger:     logger,
 		backend:    backend,
 		nodes:      dict,
+		prevBlock:  prevBlock,
 		startBlock: startBlock,
 		address:    address,
 	}
@@ -107,6 +111,17 @@ func (s *service) Sync() *syncer.Sync {
 
 func (s *service) Start() {
 	atomic.StoreUint32(&s.synced, 1)
+}
+
+func (s *service) Close() {
+	s.nodesMtx.Lock()
+	defer s.nodesMtx.Unlock()
+	for _, n := range s.nodes {
+		err := s.storer.Put(n)
+		if err != nil {
+			s.logger.Errorf(`storer put node %x fail: %v`, n.Node, err)
+		}
+	}
 }
 
 func (s *service) filterLogs(from, to *big.Int) ethereum.FilterQuery {
@@ -130,7 +145,6 @@ type trustEvent struct {
 }
 
 func (s *service) ProcessEvent(e types.Log) error {
-	// defer l.metrics.EventsProcessed.Inc()
 	switch e.Topics[0] {
 
 	case minerTopic:
@@ -139,7 +153,6 @@ func (s *service) ProcessEvent(e types.Log) error {
 		if err != nil {
 			return err
 		}
-		// l.metrics.MinerCounter.Inc()
 
 		return s.Miner(c.Node[:], c.Deposit, c.Active, e.TxHash[:], e.BlockNumber)
 
@@ -149,11 +162,9 @@ func (s *service) ProcessEvent(e types.Log) error {
 		if err != nil {
 			return err
 		}
-		// l.metrics.TrustCounter.Inc()
 		return s.Trust(c.Node[:], c.Trust, e.TxHash[:])
 
 	default:
-		// l.metrics.EventErrors.Inc()
 		return errors.New("unknown event")
 	}
 }
@@ -215,7 +226,10 @@ func (s *service) UpdateBlockNumber(blockNumber uint64) error {
 	}
 
 	if atomic.LoadUint32(&s.synced) == 1 {
-		if (blockNumber-s.startBlock)%60 == 0 {
+		prevBlock := (blockNumber - s.startBlock) / 60
+		if prevBlock > s.prevBlock {
+			s.prevBlock = prevBlock
+			s.logger.Debugf(`mine service: trigger roll call with %v`, s.prevBlock)
 			s.rollcallSigMtx.Lock()
 			for _, v := range s.rollcallSig {
 				v <- blockNumber
@@ -246,11 +260,17 @@ func (s *service) UpdateNodeLastBlock(node swarm.Address, blockNumber uint64) er
 		return fmt.Errorf("%v not found", id.String())
 	}
 
-	n.LastBlock = blockNumber
-	err := s.storer.Put(n)
-	if err != nil {
-		return fmt.Errorf("put: %w", err)
+	if n.LastBlock >= blockNumber {
+		return nil
 	}
+	n.LastBlock = blockNumber
+
+	// don't save storer
+
+	// err := s.storer.Put(n)
+	// if err != nil {
+	// 	return fmt.Errorf("put: %w", err)
+	// }
 
 	s.logger.Debugf("mine service: mine %s lastblock %v", n.Node.String(), n.LastBlock)
 	return nil
@@ -290,8 +310,8 @@ func (s *service) checkInactionTxHash(list []*mine.Node) {
 }
 
 func (s *service) ExpireMiners() ([]swarm.Address, error) {
-	s.nodesMtx.Lock()
-	defer s.nodesMtx.Unlock()
+	s.nodesMtx.RLock()
+	defer s.nodesMtx.RUnlock()
 
 	state := s.storer.GetChainState()
 	clist := make([]*mine.Node, 0, len(s.nodes))
@@ -300,7 +320,7 @@ func (s *service) ExpireMiners() ([]swarm.Address, error) {
 		if n.InactionTx != nil {
 			clist = append(clist, &mine.Node{Node: n.Node, InactionTx: n.InactionTx})
 		}
-		if n.Active && n.InactionTx == nil && n.LastBlock < state.Block-60 {
+		if n.Active && n.InactionTx == nil && n.LastBlock < state.Block-120 {
 			list = append(list, swarm.NewAddress(n.Node[:]))
 		}
 	}

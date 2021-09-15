@@ -253,7 +253,7 @@ func (c *command) setAllFlags(cmd *cobra.Command) {
 	cmd.Flags().String(optionNameMineContractAddress, "", "mine contract address")
 	cmd.Flags().Bool(optionNameUniswapEnable, false, "enable uniswap oracle")
 	cmd.Flags().String(optionNameUniswapEndpoint, "", "uniswap ethereum blockchain endpoint")
-	cmd.Flags().Duration(optionNameUniswapValidTime, time.Minute, "uniswap valid time")
+	cmd.Flags().Duration(optionNameUniswapValidTime, time.Minute*30, "uniswap valid time")
 }
 
 func newLogger(cmd *cobra.Command, verbosity string) (logging.Logger, error) {

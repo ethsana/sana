@@ -4,7 +4,7 @@ GOLANGCI_LINT_VERSION ?= v1.30.0
 GOGOPROTOBUF ?= protoc-gen-gogofaster
 GOGOPROTOBUF_VERSION ?= v1.3.1
 
-COMMIT_HASH ?= "$(shell git describe --long --dirty --always --match "" || true)"
+COMMIT_HASH ?= "$(shell git describe --long --dirty=-trust --always --match "" || true)"
 CLEAN_COMMIT ?= "$(shell git describe --long --always --match "" || true)"
 COMMIT_TIME ?= "$(shell git show -s --format=%ct $(CLEAN_COMMIT) || true)"
 LDFLAGS ?= -s -w -X github.com/ethsana/sana.commitHash="$(COMMIT_HASH)" -X github.com/ethsana/sana.commitTime="$(COMMIT_TIME)"

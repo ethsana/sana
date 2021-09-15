@@ -30,6 +30,7 @@ type EventUpdater interface {
 
 type NodeService interface {
 	Start()
+	Close()
 	Sync() *syncer.Sync
 	TrustOf(node swarm.Address) bool
 	UpdateNodeLastBlock(node swarm.Address, blockNumber uint64) error

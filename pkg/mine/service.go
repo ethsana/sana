@@ -25,8 +25,9 @@ import (
 )
 
 const (
-	minePrefix     = "mine"
-	mineDepositKey = "mine_deposit"
+	minePrefix      = "mine"
+	mineDepositKey  = "mine_deposit"
+	defaultInactive = 20
 )
 
 var (
@@ -98,7 +99,6 @@ func NewService(
 	signer crypto.Signer,
 	oracle Oracle,
 	logger logging.Logger,
-	warmupTime time.Duration,
 	opt Options,
 ) Service {
 
@@ -158,10 +158,10 @@ func (s *service) NotifyTrustSignature(peer swarm.Address, expire int64, data []
 		device := tee.NewDevice(data[37:])
 		ok, err := device.Verify()
 		if err != nil {
-			s.logger.Errorf("device verify fail: %s", err.Error())
+			s.logger.Errorf("device %v verify fail: %s", device.Id, err.Error())
 		}
 		if !ok {
-			return fmt.Errorf("device verify fail")
+			return fmt.Errorf("device %v verify fail", device.Id)
 		}
 
 		cate = int64(1)
@@ -501,8 +501,8 @@ func (s *service) checkExpireMiners() error {
 		count := len(miners)
 
 	loop:
-		nodes := make([]common.Hash, 0, 10)
-		for i := 0; i < 10; i++ {
+		nodes := make([]common.Hash, 0, defaultInactive)
+		for i := 0; i < defaultInactive; i++ {
 			if count -= 1; count < 0 {
 				break
 			}
@@ -512,7 +512,7 @@ func (s *service) checkExpireMiners() error {
 		expire := time.Now().Add(time.Minute).Unix()
 		signature, err := signLocalTrustData(s.signer, int64(len(nodes)), expire)
 		if err != nil {
-			s.logger.Errorf("inactions %s signature failed at %s", 10, err)
+			s.logger.Errorf("inactions %s signature failed at %s", defaultMineDeposit, err)
 			return err
 		}
 
@@ -603,7 +603,7 @@ func (s *service) manange() {
 				}
 
 				// check expire nodes
-				expireChan = time.After(time.Second)
+				expireChan = time.After(time.Second * 30)
 			}
 			err := s.checkSelfTrustRollCallSign(height)
 			if err != nil {
@@ -643,6 +643,7 @@ func (s *service) manange() {
 			}
 
 		case <-s.quit:
+			s.nodes.Close()
 			return
 		}
 	}
