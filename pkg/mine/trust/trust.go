@@ -369,9 +369,6 @@ func (s *Service) TrustsSignature(ctx context.Context, expire int64, data []byte
 		return nil, fmt.Errorf("topoloy is not available")
 	}
 
-	ctx, cancal := context.WithTimeout(ctx, time.Second*20)
-	defer cancal()
-
 	// TODO To be optimized
 	w := s.obtainWait()
 	defer s.releaseWait(w)
@@ -409,6 +406,12 @@ func (s *Service) TrustsSignature(ctx context.Context, expire int64, data []byte
 			}
 
 		case <-ctx.Done():
+			for _, trust := range trusts {
+				peer, err := s.topology.ClosestPeer(trust, false)
+				if err == nil {
+					s.topology.Disconnected(p2p.Peer{Address: peer})
+				}
+			}
 			return nil, ctx.Err()
 		}
 	}

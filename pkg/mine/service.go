@@ -567,7 +567,7 @@ func (s *service) signRollCallToTrust(expire int64, height uint64, node swarm.Ad
 		return fmt.Errorf("no trust nodes")
 	}
 
-	ctx, cancal := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancal := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancal()
 
 	byts := make([]byte, 8)
