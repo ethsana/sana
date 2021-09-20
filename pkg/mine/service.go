@@ -34,10 +34,11 @@ var (
 	errNodeIsFreeze     = errors.New("node is freeze")
 	errNodeIsCashout    = errors.New("node is cashout")
 	errNotUniswapOracle = errors.New("the uniswap oracle is not enabled on the current node")
-)
 
-// 50000 SANA
-var defaultMineDeposit = new(big.Int).Mul(new(big.Int).Exp(big.NewInt(10), big.NewInt(16), nil), big.NewInt(5e4))
+	// 50000 SANA
+	defaultPrecision   = new(big.Int).Exp(big.NewInt(10), big.NewInt(16), nil)
+	defaultMineDeposit = new(big.Int).Mul(defaultPrecision, big.NewInt(5e4))
+)
 
 // Service is the miner service interface.
 type Service interface {
@@ -313,8 +314,13 @@ func (s *service) mortgageMiner(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if erc20Balance.Cmp(defaultMineDeposit) < 0 {
-			return fmt.Errorf("ETH address SANA amount is less than 50000 SANA")
+
+		price := common.BytesToHash(data[65:]).Big()
+		multi := new(big.Int).Div(new(big.Int).Sub(price, big.NewInt(16100)), big.NewInt(1610))
+		mineDeposit := new(big.Int).Sub(defaultMineDeposit, new(big.Int).Mul(multi, new(big.Int).Mul(big.NewInt(400), defaultPrecision)))
+
+		if erc20Balance.Cmp(mineDeposit) < 0 {
+			return fmt.Errorf("ETH address SANA amount is less than %v SANA", new(big.Int).Div(mineDeposit, defaultPrecision).String())
 		}
 
 		lockupAddress, err := s.contract.Lockup(ctx)
@@ -327,7 +333,7 @@ func (s *service) mortgageMiner(ctx context.Context) error {
 			return err
 		}
 
-		if amount.Cmp(defaultMineDeposit) < 0 {
+		if amount.Cmp(mineDeposit) < 0 {
 			hash, err := erc20Service.Approve(ctx, lockupAddress, defaultMineDeposit)
 			if err != nil {
 				return err
@@ -339,7 +345,6 @@ func (s *service) mortgageMiner(ctx context.Context) error {
 			}
 		}
 
-		price := common.BytesToHash(data[65:]).Big()
 		cate := big.NewInt(0)
 		if s.device != nil {
 			cate = big.NewInt(1)
