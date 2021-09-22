@@ -41,6 +41,7 @@ type service struct {
 	logger     logging.Logger
 	backend    transaction.Backend
 	address    common.Address
+	trust      bool
 
 	nodes    map[common.Hash]*mine.Node
 	nodesMtx sync.RWMutex
@@ -60,6 +61,7 @@ func New(
 	backend transaction.Backend,
 	startBlock uint64,
 	address common.Address,
+	mineTrust bool,
 ) (mine.NodeService, error) {
 	dirty := false
 	err := stateStore.Get(dirtyDBKey, &dirty)
@@ -97,6 +99,7 @@ func New(
 		prevBlock:  prevBlock,
 		startBlock: startBlock,
 		address:    address,
+		trust:      mineTrust,
 	}
 	return &s, nil
 }
@@ -125,11 +128,16 @@ func (s *service) Close() {
 }
 
 func (s *service) filterLogs(from, to *big.Int) ethereum.FilterQuery {
+	topics := [][]common.Hash{{trustTopic}}
+	if s.trust {
+		topics[0] = append(topics[0], minerTopic)
+	}
+
 	return ethereum.FilterQuery{
 		FromBlock: from,
 		ToBlock:   to,
 		Addresses: []common.Address{s.address},
-		Topics:    [][]common.Hash{{minerTopic, trustTopic}},
+		Topics:    topics,
 	}
 }
 
@@ -201,7 +209,12 @@ func (s *service) Trust(node []byte, trust bool, txHash []byte) error {
 
 	n, ok := s.nodes[id]
 	if !ok {
-		return fmt.Errorf("get: not found")
+		if s.trust {
+			return fmt.Errorf("get: not found")
+		} else {
+			n = &mine.Node{Node: id, Trust: true, Active: false, Deposit: false, LastBlock: 0}
+			s.nodes[n.Node] = n
+		}
 	}
 
 	n.Trust = trust

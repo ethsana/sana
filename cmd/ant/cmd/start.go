@@ -177,6 +177,7 @@ func (c *command) initStartCmd() (err error) {
 				WarmupTime:               c.config.GetDuration(optionWarmUpTime),
 				ChainID:                  networkConfig.chainID,
 				MineEnabled:              c.config.GetBool(optionNameMine),
+				MineTrust:                c.config.GetBool(optionNameMineTrust),
 				MineContractAddress:      c.config.GetString(optionNameMineContractAddress),
 				UniswapEnable:            c.config.GetBool(optionNameUniswapEnable),
 				UniswapEndpoint:          c.config.GetString(optionNameUniswapEndpoint),

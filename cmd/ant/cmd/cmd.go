@@ -69,6 +69,7 @@ const (
 	optionNameBlockTime                 = "block-time"
 	optionWarmUpTime                    = "warmup-time"
 	optionNameMine                      = "mine"
+	optionNameMineTrust                 = "mine-trust"
 	optionNameMineContractAddress       = "mine-address"
 	optionNameUniswapEnable             = "uniswap-enable"
 	optionNameUniswapEndpoint           = "uniswap-endpoint"
@@ -250,6 +251,7 @@ func (c *command) setAllFlags(cmd *cobra.Command) {
 	cmd.Flags().String(optionNameSwapDeploymentGasPrice, "", "gas price in wei to use for deployment and funding")
 	cmd.Flags().Duration(optionWarmUpTime, time.Minute*20, "time to warmup the node before pull/push protocols can be kicked off.")
 	cmd.Flags().Bool(optionNameMine, true, "enable sana miner")
+	cmd.Flags().Bool(optionNameMineTrust, false, "node is sana trust miner")
 	cmd.Flags().String(optionNameMineContractAddress, "", "mine contract address")
 	cmd.Flags().Bool(optionNameUniswapEnable, false, "enable uniswap oracle")
 	cmd.Flags().String(optionNameUniswapEndpoint, "", "uniswap ethereum blockchain endpoint")

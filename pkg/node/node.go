@@ -162,6 +162,7 @@ type Options struct {
 	WarmupTime                 time.Duration
 	ChainID                    int64
 	MineEnabled                bool
+	MineTrust                  bool
 	MineInitialDeposit         string
 	MineContractAddress        string
 	UniswapEnable              bool
@@ -497,7 +498,7 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 
 			mineService := minecontract.New(swapBackend, transactionService, mineContractAddress)
 
-			nodeSvc, err := nodeservice.New(stateStore, nodeStore, logger, swapBackend, startBlock, mineContractAddress)
+			nodeSvc, err := nodeservice.New(stateStore, nodeStore, logger, swapBackend, startBlock, mineContractAddress, o.MineTrust)
 			if err != nil {
 				return nil, err
 			}
