@@ -29,16 +29,6 @@ var (
 	testTxHash = make([]byte, 32)
 )
 
-type mockListener struct {
-}
-
-func (*mockListener) Listen(from uint64, updater interface{}) <-chan struct{} { return nil }
-func (*mockListener) Close() error                                            { return nil }
-
-func newMockListener() *mockListener {
-	return &mockListener{}
-}
-
 type mockBatchCreationHandler struct {
 	count int
 }

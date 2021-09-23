@@ -14,8 +14,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        go: [1.15]
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: [1.16.8]
+        os: [ubuntu-latest]
     steps:
     - name: Setup Go
       uses: actions/setup-go@v2
@@ -41,43 +41,14 @@ jobs:
           ${{ runner.OS }}-build-${{ env.cache-name }}-
           ${{ runner.OS }}-build-
           ${{ runner.OS }}-
+    - name: Rust
+      run: rustup default 1.51.0
     - name: Build
-      run: make build
-    - name: Lint
-      if: matrix.os == 'ubuntu-latest'
-      run: make lint
+      run: make tee && make build
     - name: Vet
-      if: matrix.os == 'ubuntu-latest'
       run: make vet
     - name: Test with Race Detector
       # do not tests with race detector on windows
       # until the issue with badgerdb memory allocation
       # is solved in this case
-      if: matrix.os != 'windows-latest'
       run: make test-race
-    - name: Test
-      if: matrix.os == 'windows-latest'
-      run: make test
-    - name: DeepSource Coverage
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        go test -coverprofile=cover.out ./...
-        curl https://deepsource.io/cli | sh
-        ./bin/deepsource report --analyzer test-coverage --key go --value-file ./cover.out
-      env:
-        DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
-    - name: Coveralls
-      if: matrix.os == 'ubuntu-latest'
-      uses: shogo82148/actions-goveralls@v1
-      with:
-        path-to-profile: cover.out
-      env:
-        COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
-    - name: Trigger Beekeeper
-      if: github.ref == 'refs/heads/master' && matrix.os == 'ubuntu-latest' && success()
-      uses: peter-evans/repository-dispatch@v1
-      with:
-        token: ${{ secrets.REPO_GHA_PAT }}
-        repository: ${{ github.repository }}
-        event-type: trigger-beekeeper
-        client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'

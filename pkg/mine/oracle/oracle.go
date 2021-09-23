@@ -17,7 +17,6 @@ import (
 )
 
 var (
-	defaultPrice   = big.NewInt(10000)
 	v2PairABI      = transaction.ParseABIUnchecked(UniswapV2PairABI)
 	decimalSANA    = new(big.Int).Exp(big.NewInt(10), big.NewInt(16), nil)
 	decimalETH     = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)

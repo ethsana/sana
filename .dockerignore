@@ -4,7 +4,6 @@
 .github
 .idea
 .vscode
-dist
 Dockerfile
 *.yaml
 *.yml

@@ -25,7 +25,6 @@ import (
 )
 
 const (
-	minePrefix      = "mine"
 	mineDepositKey  = "mine_deposit"
 	defaultInactive = 20
 )
@@ -363,7 +362,12 @@ func (s *service) mortgageMiner(ctx context.Context) error {
 	} else {
 		s.logger.Infof("waiting for mine deposit in transaction %x", txHash)
 	}
-	defer o.Store.Delete(mineDepositKey)
+	defer func() {
+		err := o.Store.Delete(mineDepositKey)
+		if err != nil {
+			s.logger.Errorf("mine delete deposit tx fail: %v", err)
+		}
+	}()
 	return s.contract.WaitForDeposit(ctx, txHash)
 }
 

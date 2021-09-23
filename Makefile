@@ -65,3 +65,7 @@ clean:
 	rm -rf dist/
 
 FORCE:
+
+tee:
+	$(GO) mod download
+	cd $$($(GO) env GOPATH)/pkg/mod/github.com/ethsana/$$(ls $$($(GO) env GOPATH)/pkg/mod/github.com/ethsana) && chmod -R 766 ./ && cargo build
