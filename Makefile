@@ -4,6 +4,8 @@ GOLANGCI_LINT_VERSION ?= v1.30.0
 GOGOPROTOBUF ?= protoc-gen-gogofaster
 GOGOPROTOBUF_VERSION ?= v1.3.1
 
+
+SANA_TEE_VERSION ?= "$(shell cat go.mod | grep sana-tee | grep -P 'v[0-9.]+' -o)"
 COMMIT_HASH ?= "$(shell git describe --long --dirty --always --match "" || true)"
 CLEAN_COMMIT ?= "$(shell git describe --long --always --match "" || true)"
 COMMIT_TIME ?= "$(shell git show -s --format=%ct $(CLEAN_COMMIT) || true)"
@@ -68,4 +70,4 @@ FORCE:
 
 tee:
 	$(GO) mod download
-	cd $$($(GO) env GOPATH)/pkg/mod/github.com/ethsana/$$(ls $$($(GO) env GOPATH)/pkg/mod/github.com/ethsana) && chmod -R 766 ./ && cargo build
+	cd $$($(GO) env GOPATH)/pkg/mod/github.com/ethsana/sana-tee@$(SANA_TEE_VERSION) && chmod -R 766 ./ && cargo build
