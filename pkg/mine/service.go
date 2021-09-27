@@ -26,6 +26,7 @@ import (
 
 const (
 	mineDepositKey  = "mine_deposit"
+	teeDeviceKey    = "tee_device_"
 	defaultInactive = 20
 )
 
@@ -130,6 +131,42 @@ func NewService(
 	}
 }
 
+func (s *service) validateDevice(byts []byte) error {
+	if len(byts) < 132 {
+		return errors.New("unknown tee device")
+	}
+	device := tee.NewDevice(byts)
+	if device.Platform == tee.Unknown {
+		return errors.New("unknown tee device")
+	}
+	key := fmt.Sprint(teeDeviceKey, device.Platform, "_", device.Id)
+	var expired int64
+	err := s.opt.Store.Get(key, &expired)
+	if err != nil && err != storage.ErrNotFound {
+		return fmt.Errorf("get %s device fail: %v", device.Id, err)
+	}
+	if err == storage.ErrNotFound {
+		goto query
+	}
+	if expired == 0 {
+		return nil
+	} else if unix := time.Now().Unix(); expired > unix {
+		return fmt.Errorf("get %s device not expired:", device.Id)
+	}
+
+query:
+	ok, err := device.Verify()
+	if err != nil {
+		return err
+	}
+	if ok {
+		expired = 0
+	} else {
+		expired = time.Now().Add(time.Minute).Unix()
+	}
+	return s.opt.Store.Put(key, expired)
+}
+
 func (s *service) NotifyTrustSignature(peer swarm.Address, expire int64, data []byte) (err error) {
 	ctx, cancal := context.WithTimeout(context.Background(), time.Minute)
 	defer cancal()
@@ -155,13 +192,10 @@ func (s *service) NotifyTrustSignature(peer swarm.Address, expire int64, data []
 
 	cate := int64(0)
 	if len(data) > 37 {
-		device := tee.NewDevice(data[37:])
-		ok, err := device.Verify()
+
+		err := s.validateDevice(data[37:])
 		if err != nil {
-			s.logger.Errorf("device %v verify fail: %s", device.Id, err.Error())
-		}
-		if !ok {
-			return fmt.Errorf("device %v verify fail", device.Id)
+			s.logger.Errorf("device verify fail: %s", err.Error())
 		}
 
 		cate = int64(1)
