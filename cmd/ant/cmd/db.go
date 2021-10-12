@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/ethsana/sana/pkg/localstore"
-	"github.com/ethsana/sana/pkg/statestore/leveldb"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +24,6 @@ func (c *command) initDBCmd() {
 
 	dbExportCmd(cmd)
 	dbImportCmd(cmd)
-	dbResetNonce(cmd)
 
 	c.root.AddCommand(cmd)
 }
@@ -144,45 +142,6 @@ func dbImportCmd(cmd *cobra.Command) {
 			fmt.Printf("database imported %d records successfully\n", c)
 
 			return nil
-		},
-	}
-	c.Flags().String(optionNameDataDir, "", "data directory")
-	c.Flags().String(optionNameVerbosity, "info", "verbosity level")
-	cmd.AddCommand(c)
-}
-
-func dbResetNonce(cmd *cobra.Command) {
-	c := &cobra.Command{
-		Use:   "resetnonce",
-		Short: "Reset the nonce of a sana node",
-		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			v, err := cmd.Flags().GetString(optionNameVerbosity)
-			if err != nil {
-				return fmt.Errorf("get verbosity: %v", err)
-			}
-			v = strings.ToLower(v)
-			logger, err := newLogger(cmd, v)
-			if err != nil {
-				return fmt.Errorf("new logger: %v", err)
-			}
-			dataDir, err := cmd.Flags().GetString(optionNameDataDir)
-			if err != nil {
-				return fmt.Errorf("get data-dir: %v", err)
-			}
-			if dataDir == "" {
-				return errors.New("no data-dir provided")
-			}
-
-			store, err := leveldb.NewStateStore(filepath.Join(dataDir, "statestore"), logger)
-			if err != nil {
-				return fmt.Errorf("new statestore fail: %v", err)
-			}
-			defer store.Close()
-
-			return store.Iterate("transaction_nonce_", func(key, value []byte) (stop bool, err error) {
-				logger.Infof("remove key %s", string(key))
-				return false, store.Delete(string(key))
-			})
 		},
 	}
 	c.Flags().String(optionNameDataDir, "", "data directory")
