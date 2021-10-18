@@ -88,12 +88,39 @@ func (s *server) setupRouting() {
 			web.FinalHandlerFunc(s.bzzUploadHandler),
 		),
 	})
+
+	handle("/sana", jsonhttp.MethodHandler{
+		"POST": web.ChainHandlers(
+			s.newTracingHandler("sana-upload"),
+			web.FinalHandlerFunc(s.bzzUploadHandler),
+		),
+	})
+
 	handle("/bzz/{address}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u := r.URL
 		u.Path += "/"
 		http.Redirect(w, r, u.String(), http.StatusPermanentRedirect)
 	}))
+
+	handle("/sana/{address}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u := r.URL
+		u.Path += "/"
+		http.Redirect(w, r, u.String(), http.StatusPermanentRedirect)
+	}))
+
 	handle("/bzz/{address}/{path:.*}", jsonhttp.MethodHandler{
+		"GET": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			u := r.URL
+			u.Path = strings.Replace(u.Path, "/bzz/", "/sana/", 1)
+			http.Redirect(w, r, u.String(), http.StatusPermanentRedirect)
+		}),
+		"PATCH": web.ChainHandlers(
+			s.newTracingHandler("bzz-patch"),
+			web.FinalHandlerFunc(s.bzzPatchHandler),
+		),
+	})
+
+	handle("/sana/{address}/{path:.*}", jsonhttp.MethodHandler{
 		"GET": web.ChainHandlers(
 			s.newTracingHandler("bzz-download"),
 			web.FinalHandlerFunc(s.bzzDownloadHandler),
@@ -176,14 +203,13 @@ func (s *server) setupRouting() {
 		},
 		func(h http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Header.Get(`Access-Control-Request-Headers`) != `` {
-					jsonhttp.NoContent(w)
-					return
-				}
-
-				if s.Authorization != `` && !strings.EqualFold(r.Header.Get(`Authorization`), s.Authorization) {
-					jsonhttp.InternalServerError(w, fmt.Errorf("authorization failed"))
-					return
+				for k, list := range r.Header {
+					if strings.HasPrefix(k, "Swarm-") {
+						key := strings.Replace(k, "Swarm-", "Sana-", 1)
+						for _, v := range list {
+							r.Header.Set(key, v)
+						}
+					}
 				}
 				h.ServeHTTP(w, r)
 			})

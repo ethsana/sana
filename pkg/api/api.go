@@ -39,15 +39,15 @@ import (
 )
 
 const (
-	SwarmPinHeader            = "Swarm-Pin"
-	SwarmTagHeader            = "Swarm-Tag"
-	SwarmEncryptHeader        = "Swarm-Encrypt"
-	SwarmIndexDocumentHeader  = "Swarm-Index-Document"
-	SwarmErrorDocumentHeader  = "Swarm-Error-Document"
-	SwarmFeedIndexHeader      = "Swarm-Feed-Index"
-	SwarmFeedIndexNextHeader  = "Swarm-Feed-Index-Next"
-	SwarmCollectionHeader     = "Swarm-Collection"
-	SwarmPostageBatchIdHeader = "Swarm-Postage-Batch-Id"
+	SwarmPinHeader            = "Sana-Pin"
+	SwarmTagHeader            = "Sana-Tag"
+	SwarmEncryptHeader        = "Sana-Encrypt"
+	SwarmIndexDocumentHeader  = "Sana-Index-Document"
+	SwarmErrorDocumentHeader  = "Sana-Error-Document"
+	SwarmFeedIndexHeader      = "Sana-Feed-Index"
+	SwarmFeedIndexNextHeader  = "Sana-Feed-Index-Next"
+	SwarmCollectionHeader     = "Sana-Collection"
+	SwarmPostageBatchIdHeader = "Sana-Postage-Batch-Id"
 )
 
 // The size of buffer used for prefetching content with Langos.
