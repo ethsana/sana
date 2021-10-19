@@ -6,6 +6,7 @@ package api_test
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"context"
 	"fmt"
@@ -34,8 +35,8 @@ import (
 
 func TestDirs(t *testing.T) {
 	var (
-		dirUploadResource   = "/bzz"
-		bzzDownloadResource = func(addr, path string) string { return "/bzz/" + addr + "/" + path }
+		dirUploadResource   = "/sana"
+		bzzDownloadResource = func(addr, path string) string { return "/sana/" + addr + "/" + path }
 		ctx                 = context.Background()
 		storer              = mock.NewStorer()
 		mockStatestore      = statestore.NewStateStore()
@@ -412,6 +413,38 @@ func TestDirs(t *testing.T) {
 
 				verify(t, resp)
 			})
+			t.Run("zip_upload", func(t *testing.T) {
+				// tar all the test case files
+				zipReader := zipFiles(t, tc.files)
+
+				var resp api.BzzUploadResponse
+
+				options := []jsonhttptest.Option{
+					jsonhttptest.WithRequestHeader(api.SwarmPostageBatchIdHeader, batchOkStr),
+					jsonhttptest.WithRequestBody(zipReader),
+					jsonhttptest.WithRequestHeader(api.SwarmCollectionHeader, "True"),
+					jsonhttptest.WithRequestHeader("Content-Type", api.ContentTypeZip),
+					jsonhttptest.WithUnmarshalJSONResponse(&resp),
+				}
+				if tc.indexFilenameOption != nil {
+					options = append(options, tc.indexFilenameOption)
+				}
+				if tc.errorFilenameOption != nil {
+					options = append(options, tc.errorFilenameOption)
+				}
+				if tc.encrypt {
+					options = append(options, jsonhttptest.WithRequestHeader(api.SwarmEncryptHeader, "true"))
+				}
+
+				// verify directory tar upload response
+				jsonhttptest.Request(t, client, http.MethodPost, dirUploadResource, http.StatusCreated, options...)
+
+				if resp.Reference.String() == "" {
+					t.Fatalf("expected file reference, did not got any")
+				}
+
+				verify(t, resp)
+			})
 			if tc.doMultipart {
 				t.Run("multipart_upload", func(t *testing.T) {
 					// tar all the test case files
@@ -524,6 +557,37 @@ func multipartFiles(t *testing.T, files []f) (*bytes.Buffer, string) {
 	}
 
 	return &buf, mw.Boundary()
+}
+
+func zipFiles(t *testing.T, files []f) *bytes.Buffer {
+	t.Helper()
+
+	var buf bytes.Buffer
+	w := zip.NewWriter(&buf)
+
+	for _, file := range files {
+
+		filePath := path.Join(file.dir, file.name)
+		if file.filePath != "" {
+			filePath = file.filePath
+		}
+
+		f, err := w.Create(filePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if _, err := f.Write(file.data); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// finally close the tar writer
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	return &buf
 }
 
 // struct for dir files for test cases

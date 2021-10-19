@@ -27,6 +27,7 @@ var (
 
 var (
 	ContentTypeTar    = contentTypeTar
+	ContentTypeZip    = contentTypeZip
 	ContentTypeHeader = contentTypeHeader
 )
 

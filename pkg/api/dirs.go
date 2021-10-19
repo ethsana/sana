@@ -6,13 +6,16 @@ package api
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -52,6 +55,33 @@ func (s *server) dirUploadHandler(w http.ResponseWriter, r *http.Request, storer
 	switch mediaType {
 	case contentTypeTar:
 		dReader = &tarReader{r: tar.NewReader(r.Body), logger: s.logger}
+	case contentTypeZip:
+		file, err := ioutil.TempFile("", "sana.*.zip")
+		if err != nil {
+			logger.Errorf("sana upload dir: create temp file fail")
+			logger.Debugf("sana upload dir: create temp file fail err: %v", err)
+			jsonhttp.BadRequest(w, errCreateTempFile)
+			return
+		}
+		defer os.Remove(file.Name())
+		defer file.Close()
+
+		_, err = io.Copy(file, r.Body)
+		if err != nil {
+			logger.Errorf("sana upload dir: create temp file fail")
+			logger.Debugf("sana upload dir: create temp file fail err: %v", err)
+			jsonhttp.BadRequest(w, errCreateTempFile)
+			return
+		}
+
+		reader, err := zip.NewReader(file, r.ContentLength)
+		if err != nil {
+			logger.Errorf("sana upload dir: open zip file")
+			logger.Debugf("sana upload dir: open zip file err: %v", err)
+			jsonhttp.BadRequest(w, errOpenZipFile)
+			return
+		}
+		dReader = &zipReader{r: reader, logger: s.logger}
 	case multiPartFormData:
 		dReader = &multipartReader{r: multipart.NewReader(r.Body, params["boundary"])}
 	default:
@@ -330,4 +360,58 @@ func (m *multipartReader) Next() (*FileInfo, error) {
 		Size:        fileSize,
 		Reader:      part,
 	}, nil
+}
+
+type zipReader struct {
+	i      int
+	r      *zip.Reader
+	rc     io.ReadCloser
+	logger logging.Logger
+}
+
+func (z *zipReader) Next() (_ *FileInfo, err error) {
+	if z.rc != nil {
+		err = z.rc.Close()
+		if err != nil {
+			z.logger.Warningf("zip file entry close fail: %w", err)
+		}
+	}
+
+	for ; z.i < len(z.r.File); z.i += 1 {
+		fileHeader := z.r.File[z.i].FileHeader
+
+		fileName := fileHeader.FileInfo().Name()
+		contentType := mime.TypeByExtension(filepath.Ext(fileHeader.Name))
+		fileSize := fileHeader.FileInfo().Size()
+		filePath := filepath.Clean(fileHeader.Name)
+
+		if filePath == "." {
+			z.logger.Warning("skipping file upload empty path")
+			continue
+		}
+		if runtime.GOOS == "windows" {
+			// always use Unix path separator
+			filePath = filepath.ToSlash(filePath)
+		}
+		// only store regular files
+		if !fileHeader.FileInfo().Mode().IsRegular() {
+			z.logger.Warningf("skipping file upload for %s as it is not a regular file", filePath)
+			continue
+		}
+
+		z.rc, err = z.r.File[z.i].Open()
+		if err != nil {
+			return nil, fmt.Errorf("zip file entry open fail: %w", err)
+		}
+
+		z.i += 1
+		return &FileInfo{
+			Path:        filePath,
+			Name:        fileName,
+			ContentType: contentType,
+			Size:        fileSize,
+			Reader:      z.rc,
+		}, nil
+	}
+	return nil, io.EOF
 }

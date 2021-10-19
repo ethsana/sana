@@ -66,6 +66,7 @@ const (
 	contentTypeHeader = "Content-Type"
 	multiPartFormData = "multipart/form-data"
 	contentTypeTar    = "application/x-tar"
+	contentTypeZip    = "application/zip"
 )
 
 var (
@@ -76,6 +77,8 @@ var (
 	errDirectoryStore       = errors.New("could not store directory")
 	errFileStore            = errors.New("could not store file")
 	errInvalidPostageBatch  = errors.New("invalid postage batch id")
+	errCreateTempFile       = errors.New("could not create temp file")
+	errOpenZipFile          = errors.New("could not open zip file")
 )
 
 // Service is the API service interface.
