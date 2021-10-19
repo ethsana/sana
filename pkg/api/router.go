@@ -84,21 +84,21 @@ func (s *server) setupRouting() {
 
 	handle("/bzz", jsonhttp.MethodHandler{
 		"POST": web.ChainHandlers(
-			s.newTracingHandler("bzz-upload"),
-			web.FinalHandlerFunc(s.bzzUploadHandler),
+			s.newTracingHandler("sana-upload"),
+			web.FinalHandlerFunc(s.sanaUploadHandler),
 		),
 	})
 
 	handle("/sana", jsonhttp.MethodHandler{
 		"POST": web.ChainHandlers(
 			s.newTracingHandler("sana-upload"),
-			web.FinalHandlerFunc(s.bzzUploadHandler),
+			web.FinalHandlerFunc(s.sanaUploadHandler),
 		),
 	})
 
 	handle("/bzz/{address}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u := r.URL
-		u.Path += "/"
+		u.Path = strings.Replace(u.Path, "/bzz/", "/sana/", 1) + "/"
 		http.Redirect(w, r, u.String(), http.StatusPermanentRedirect)
 	}))
 
@@ -115,19 +115,19 @@ func (s *server) setupRouting() {
 			http.Redirect(w, r, u.String(), http.StatusPermanentRedirect)
 		}),
 		"PATCH": web.ChainHandlers(
-			s.newTracingHandler("bzz-patch"),
-			web.FinalHandlerFunc(s.bzzPatchHandler),
+			s.newTracingHandler("sana-patch"),
+			web.FinalHandlerFunc(s.sanaPatchHandler),
 		),
 	})
 
 	handle("/sana/{address}/{path:.*}", jsonhttp.MethodHandler{
 		"GET": web.ChainHandlers(
-			s.newTracingHandler("bzz-download"),
-			web.FinalHandlerFunc(s.bzzDownloadHandler),
+			s.newTracingHandler("sana-download"),
+			web.FinalHandlerFunc(s.sanaDownloadHandler),
 		),
 		"PATCH": web.ChainHandlers(
-			s.newTracingHandler("bzz-patch"),
-			web.FinalHandlerFunc(s.bzzPatchHandler),
+			s.newTracingHandler("sana-patch"),
+			web.FinalHandlerFunc(s.sanaPatchHandler),
 		),
 	})
 
@@ -194,9 +194,18 @@ func (s *server) setupRouting() {
 				if o := r.Header.Get("Origin"); o != "" && s.checkOrigin(r) {
 					w.Header().Set("Access-Control-Allow-Credentials", "true")
 					w.Header().Set("Access-Control-Allow-Origin", o)
-					w.Header().Set("Access-Control-Allow-Headers", "Origin, Accept, Authorization, Content-Type, X-Requested-With, Access-Control-Request-Headers, Access-Control-Request-Method, Swarm-Tag, Swarm-Pin, Swarm-Encrypt, Swarm-Index-Document, Swarm-Error-Document, Swarm-Collection, Swarm-Postage-Batch-Id, Gas-Price")
+					w.Header().Set("Access-Control-Allow-Headers", "Origin, Accept, Authorization, Content-Type, X-Requested-With, Access-Control-Request-Headers, Access-Control-Request-Method, Swarm-Tag, Sana-Tag, Swarm-Pin, Sana-Pin, Swarm-Encrypt, Sana-Encrypt, Swarm-Index-Document, Sana-Index-Document, Swarm-Error-Document,  Sana-Error-Document, Swarm-Collection, Sana-Collection, Swarm-Postage-Batch-Id, Sana-Postage-Batch-Id, Gas-Price")
 					w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS, POST, PUT, DELETE")
 					w.Header().Set("Access-Control-Max-Age", "3600")
+				}
+				h.ServeHTTP(w, r)
+			})
+		},
+		func(h http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Header.Get(`Access-Control-Request-Headers`) != `` {
+					jsonhttp.NoContent(w)
+					return
 				}
 				h.ServeHTTP(w, r)
 			})

@@ -92,6 +92,7 @@ type Ant struct {
 	p2pCancel                context.CancelFunc
 	apiCloser                io.Closer
 	apiServer                *http.Server
+	gApiServer               *http.Server
 	debugAPIServer           *http.Server
 	resolverCloser           io.Closer
 	errorLogWriter           *io.PipeWriter
@@ -794,7 +795,6 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		steward := steward.New(storer, traversalService, pushSyncProtocol)
 		apiService = api.New(tagService, ns, multiResolver, pssService, traversalService, pinningService, feedFactory, post, postageContractService, steward, signer, logger, tracer, api.Options{
 			CORSAllowedOrigins: o.CORSAllowedOrigins,
-			Authorization:      o.DashboardAuthorization,
 			GatewayMode:        o.GatewayMode,
 			WsPingPeriod:       60 * time.Second,
 		})
@@ -818,6 +818,31 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 				logger.Error("unable to serve api")
 			}
 		}()
+
+		if o.GatewayMode {
+			gApiListener, err := net.Listen("tcp", ":http")
+			if err != nil {
+				return nil, fmt.Errorf("gateway api listener: %w", err)
+			}
+
+			gApiServer := &http.Server{
+				IdleTimeout:       30 * time.Second,
+				ReadHeaderTimeout: 3 * time.Second,
+				Handler:           apiService.GatewayResolverHandler(),
+				ErrorLog:          log.New(b.errorLogWriter, "", 0),
+			}
+
+			go func() {
+				logger.Infof("gateway api serve listener: %s", gApiListener.Addr())
+
+				if err := gApiServer.Serve(gApiListener); err != nil && err != http.ErrServerClosed {
+					logger.Debugf("gateway api server: %v", err)
+					logger.Error("unable to gateway serve api")
+				}
+			}()
+
+			b.gApiServer = gApiServer
+		}
 
 		b.apiServer = apiServer
 		b.apiCloser = apiService
@@ -918,6 +943,14 @@ func (b *Ant) Shutdown(ctx context.Context) error {
 		eg.Go(func() error {
 			if err := b.apiServer.Shutdown(ctx); err != nil {
 				return fmt.Errorf("api server: %w", err)
+			}
+			return nil
+		})
+	}
+	if b.gApiServer != nil {
+		eg.Go(func() error {
+			if err := b.gApiServer.Shutdown(ctx); err != nil {
+				return fmt.Errorf("gateway server: %w", err)
 			}
 			return nil
 		})

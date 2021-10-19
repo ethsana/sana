@@ -69,7 +69,7 @@ const (
 )
 
 var (
-	errInvalidNameOrAddress = errors.New("invalid name or bzz address")
+	errInvalidNameOrAddress = errors.New("invalid name or sana address")
 	errNoResolver           = errors.New("no resolver connected")
 	errInvalidRequest       = errors.New("could not validate request")
 	errInvalidContentType   = errors.New("invalid content-type")
@@ -83,6 +83,7 @@ type Service interface {
 	http.Handler
 	m.Collector
 	io.Closer
+	GatewayResolverHandler() http.Handler
 }
 
 type server struct {
@@ -109,7 +110,6 @@ type server struct {
 
 type Options struct {
 	CORSAllowedOrigins []string
-	Authorization      string
 	GatewayMode        bool
 	WsPingPeriod       time.Duration
 }
@@ -191,10 +191,10 @@ func (s *server) getTag(tagUid string) (*tags.Tag, error) {
 func (s *server) resolveNameOrAddress(str string) (swarm.Address, error) {
 	log := s.logger
 
-	// Try and parse the name as a bzz address.
+	// Try and parse the name as a sana address.
 	addr, err := swarm.ParseHexAddress(str)
 	if err == nil {
-		log.Tracef("name resolve: valid bzz address %q", str)
+		log.Tracef("name resolve: valid sana address %q", str)
 		return addr, nil
 	}
 
@@ -204,7 +204,7 @@ func (s *server) resolveNameOrAddress(str string) (swarm.Address, error) {
 	}
 
 	// Try and resolve the name using the provided resolver.
-	log.Debugf("name resolve: attempting to resolve %s to bzz address", str)
+	log.Debugf("name resolve: attempting to resolve %s to sana address", str)
 	addr, err = s.resolver.Resolve(str)
 	if err == nil {
 		log.Tracef("name resolve: resolved name %s to %s", str, addr)
