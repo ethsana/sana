@@ -32,7 +32,7 @@ func (s *server) GatewayResolverHandler() http.Handler {
 			jsonhttp.Forbidden(w, "")
 			return
 		}
-		address := strings.Replace(list[0], lookupTxtPrefix, "", 1)
+		address := strings.TrimPrefix(list[0], lookupTxtPrefix)
 		r.URL.Path = fmt.Sprintf("/sana/%v%v", address, r.URL.Path)
 		w.Header().Set("Server", fmt.Sprint("SANA/", sana.Version))
 		router.ServeHTTP(w, r)
