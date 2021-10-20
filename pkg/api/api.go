@@ -67,6 +67,7 @@ const (
 	multiPartFormData = "multipart/form-data"
 	contentTypeTar    = "application/x-tar"
 	contentTypeZip    = "application/zip"
+	contentTypeZipX   = "application/x-zip-compressed"
 )
 
 var (

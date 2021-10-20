@@ -172,7 +172,7 @@ func (c *command) initConfig() (err error) {
 	}
 
 	// Environment
-	config.SetEnvPrefix("bee")
+	config.SetEnvPrefix("sana")
 	config.AutomaticEnv() // read in environment variables that match
 	config.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 

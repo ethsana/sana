@@ -22,6 +22,7 @@ func (s *server) GatewayResolverHandler() http.Handler {
 	router.Handle("/sana/{address}/{path:.*}", http.HandlerFunc(s.bzzDownloadHandler))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		if ip := net.ParseIP(r.Host); ip != nil {
 			jsonhttp.Forbidden(w, "")
 			return

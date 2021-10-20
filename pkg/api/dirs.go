@@ -55,7 +55,10 @@ func (s *server) dirUploadHandler(w http.ResponseWriter, r *http.Request, storer
 	switch mediaType {
 	case contentTypeTar:
 		dReader = &tarReader{r: tar.NewReader(r.Body), logger: s.logger}
+
 	case contentTypeZip:
+		fallthrough
+	case contentTypeZipX:
 		file, err := ioutil.TempFile("", "sana.*.zip")
 		if err != nil {
 			logger.Errorf("sana upload dir: create temp file fail")
