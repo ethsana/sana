@@ -34,9 +34,9 @@ import (
 
 func TestBzzFiles(t *testing.T) {
 	var (
-		fileUploadResource   = "/bzz"
+		fileUploadResource   = "/sana"
 		targets              = "0x222"
-		fileDownloadResource = func(addr string) string { return "/bzz/" + addr }
+		fileDownloadResource = func(addr string) string { return "/sana/" + addr }
 		simpleData           = []byte("this is a simple text")
 		storerMock           = smock.NewStorer()
 		statestoreMock       = statestore.NewStateStore()
@@ -335,15 +335,15 @@ func TestBzzFilesRangeRequests(t *testing.T) {
 		},
 		{
 			name:             "file",
-			uploadEndpoint:   "/bzz",
-			downloadEndpoint: "/bzz",
+			uploadEndpoint:   "/sana",
+			downloadEndpoint: "/sana",
 			reader:           bytes.NewReader(data),
 			contentType:      "text/plain; charset=utf-8",
 		},
 		{
 			name:             "dir",
-			uploadEndpoint:   "/bzz",
-			downloadEndpoint: "/bzz",
+			uploadEndpoint:   "/sana",
+			downloadEndpoint: "/sana",
 			filepath:         "ipsum/lorem.txt",
 			reader: tarFiles(t, []f{
 				{
@@ -545,7 +545,7 @@ func TestFeedIndirection(t *testing.T) {
 	}
 
 	// verify directory tar upload response
-	jsonhttptest.Request(t, client, http.MethodPost, "/bzz", http.StatusCreated, options...)
+	jsonhttptest.Request(t, client, http.MethodPost, "/sana", http.StatusCreated, options...)
 
 	if resp.Reference.String() == "" {
 		t.Fatalf("expected file reference, did not got any")
@@ -562,7 +562,7 @@ func TestFeedIndirection(t *testing.T) {
 	var (
 		look                = newMockLookup(-1, 0, feedUpdate, nil, &id{}, nil)
 		factory             = newMockFactory(look)
-		bzzDownloadResource = func(addr, path string) string { return "/bzz/" + addr + "/" + path }
+		bzzDownloadResource = func(addr, path string) string { return "/sana/" + addr + "/" + path }
 		ctx                 = context.Background()
 	)
 	client, _, _ = newTestServer(t, testServerOptions{
@@ -615,7 +615,7 @@ func TestBzzReupload(t *testing.T) {
 		Logger:  logger,
 		Steward: m,
 	})
-	jsonhttptest.Request(t, client, http.MethodPatch, "/v1/bzz/"+addr.String(), http.StatusOK,
+	jsonhttptest.Request(t, client, http.MethodPatch, "/v1/sana/"+addr.String(), http.StatusOK,
 		jsonhttptest.WithExpectedJSONResponse(jsonhttp.StatusResponse{
 			Message: http.StatusText(http.StatusOK),
 			Code:    http.StatusOK,

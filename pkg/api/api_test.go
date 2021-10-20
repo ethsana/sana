@@ -277,7 +277,7 @@ func TestPostageHeaderError(t *testing.T) {
 		})
 
 		endpoints = []string{
-			"bytes", "bzz", "chunks",
+			"bytes", "sana", "chunks",
 		}
 	)
 	content := []byte{7: 0} // 8 zeros
