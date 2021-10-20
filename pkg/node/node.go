@@ -127,6 +127,7 @@ type Options struct {
 	DBBlockCacheCapacity       uint64
 	DBDisableSeeksCompaction   bool
 	APIAddr                    string
+	GatewayAddr                string
 	DebugAPIAddr               string
 	Addr                       string
 	NATAddr                    string
@@ -820,7 +821,7 @@ func NewAnt(addr string, publicKey *ecdsa.PublicKey, signer crypto.Signer, netwo
 		}()
 
 		if o.GatewayMode {
-			gApiListener, err := net.Listen("tcp", ":http")
+			gApiListener, err := net.Listen("tcp", o.GatewayAddr)
 			if err != nil {
 				return nil, fmt.Errorf("gateway api listener: %w", err)
 			}
