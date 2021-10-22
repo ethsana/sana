@@ -630,6 +630,7 @@ func (s *service) manange() {
 	defer timer.Stop()
 
 	var expireChan <-chan time.Time
+	var timeKeep = time.Now().Add(time.Hour)
 
 	for {
 		select {
@@ -654,9 +655,14 @@ func (s *service) manange() {
 			}
 
 		case <-expireChan:
+			if time.Now().Before(timeKeep) {
+				s.logger.Infof("inaction expire miners wait")
+				break
+			}
+
 			err := s.checkExpireMiners()
 			if err != nil {
-				s.logger.Infof("inaction expire miner failed at %s", err)
+				s.logger.Infof("inaction expire miners failed at %s", err)
 			}
 
 		case rc := <-s.rcnc:
